@@ -1,7 +1,7 @@
 import {
-  exportJournal, importJournal, loadJournal, localDay, mondayOf,
-  readingStats, safeSourceUrl, saveArticle, shiftDay, updateArticle
-} from "./journal.js"
+  deleteArticle, exportJournal, importJournal, loadJournal, localDay, mondayOf,
+  readingStats, readingStreaks, safeSourceUrl, saveArticle, shiftDay, updateArticle
+} from "./journal.js?v=3"
 
 const sample = {
   id: "sample",
@@ -24,6 +24,11 @@ const editor = document.querySelector("#editor-dialog")
 const editorForm = document.querySelector("#editor-form")
 const editorError = document.querySelector("#editor-error")
 const saveButton = document.querySelector("#save-button")
+const deleteDialog = document.querySelector("#delete-dialog")
+const deleteForm = document.querySelector("#delete-form")
+const deleteError = document.querySelector("#delete-error")
+const deleteButton = document.querySelector("#delete-button")
+const sidebarToggle = document.querySelector("#sidebar-toggle")
 const stampDialog = document.querySelector("#stamp-dialog")
 const backupDialog = document.querySelector("#backup-dialog")
 const backupFile = document.querySelector("#backup-file")
@@ -32,17 +37,19 @@ const toast = document.querySelector("#toast")
 const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   month: "long", day: "numeric", weekday: "short", timeZone: "UTC"
 })
-const shortDateFormat = new Intl.DateTimeFormat("zh-CN", {
-  month: "short", day: "numeric", timeZone: "UTC"
+const archiveDateFormat = new Intl.DateTimeFormat("zh-CN", {
+  year: "numeric", month: "long", day: "numeric", timeZone: "UTC"
 })
 const keyPrefix = `press-journal:${location.pathname.replace(/\/index\.html$/, "/")}`
 const updates = new BroadcastChannel(keyPrefix)
 const settingsKey = `${keyPrefix}:reader-settings`
+const sidebarKey = `${keyPrefix}:sidebar-collapsed`
 
 let journal = { articles: [], checkins: [] }
 let today = localDay()
 let calendarYear = Number(today.slice(0, 4))
 let editingId = null
+let deletingId = null
 let toastTimeout
 let ready = false
 let preferences = { "font-size": "medium", "paper-theme": "white" }
@@ -53,6 +60,31 @@ try {
 } catch {
   // Reading preferences still work for the current visit.
 }
+
+function setSidebarCollapsed(collapsed) {
+  document.body.classList.toggle("sidebar-collapsed", collapsed)
+  sidebarToggle.setAttribute("aria-expanded", String(!collapsed))
+  const label = collapsed ? "展开左侧工具栏" : "收起左侧工具栏"
+  sidebarToggle.setAttribute("aria-label", label)
+  sidebarToggle.title = label
+  sidebarToggle.querySelector("use").setAttribute("href", collapsed ? "#i-sidebar-expand" : "#i-sidebar")
+}
+
+try {
+  setSidebarCollapsed(localStorage.getItem(sidebarKey) === "true")
+} catch {
+  // The toolbar starts expanded if storage is unavailable.
+}
+
+sidebarToggle.addEventListener("click", () => {
+  const collapsed = sidebarToggle.getAttribute("aria-expanded") === "true"
+  setSidebarCollapsed(collapsed)
+  try {
+    localStorage.setItem(sidebarKey, String(collapsed))
+  } catch {
+    // The toolbar can still be toggled for the current visit.
+  }
+})
 
 function view(name) {
   return document.querySelector(`#${name}`).content.cloneNode(true)
@@ -110,30 +142,58 @@ function articleRow(article) {
   const row = view("article-row")
   const link = row.querySelector("a")
   const title = row.querySelector("[data-row-title]")
+  const remove = row.querySelector("[data-action=delete]")
   link.href = `#read/${article.id}`
   title.textContent = article.title
   if (article.id === sample.id) {
     title.lang = "en"
-    link.classList.add("sample-row")
+    link.parentElement.classList.add("sample-row")
     link.querySelector("use").setAttribute("href", "#i-book")
+    remove.hidden = true
+  } else {
+    remove.dataset.articleId = article.id
+    remove.setAttribute("aria-label", `删除文章：${article.title}`)
   }
-  const date = article.day ? dateText(article.day, shortDateFormat) : ""
-  row.querySelector("[data-row-meta]").textContent = [article.source, date, readTime(article.text)].filter(Boolean).join("  ·  ")
+  row.querySelector("[data-row-meta]").textContent = [article.source, readTime(article.text)].filter(Boolean).join("  ·  ")
   return row
 }
 
 function showArticles(container, articles, query = "") {
   container.replaceChildren()
   if (!articles.length) {
+    const list = document.createElement("div")
+    list.className = "paper article-list"
     if (query) {
-      message(container, "没找到相关文章", "试试其他关键词。", "search")
-      return
+      message(list, "没找到相关文章", "试试其他关键词。", "search")
+    } else {
+      message(list, "书架还是空的", "收藏一篇外刊，随时回来重读。")
+      list.append(articleRow(sample))
     }
-    message(container, "书架还是空的", "收藏一篇外刊，随时回来重读。")
-    container.append(articleRow(sample))
+    container.append(list)
     return
   }
-  container.append(...articles.map(articleRow))
+
+  const grouped = new Map()
+  for (const article of articles) {
+    if (!grouped.has(article.day)) grouped.set(article.day, [])
+    grouped.get(article.day).push(article)
+  }
+  const streaks = readingStreaks(checkedDays())
+  for (const [day, entries] of grouped) {
+    const group = view("archive-day")
+    group.querySelector(".archive-day").dataset.archiveDay = day
+    const date = group.querySelector("time")
+    date.dateTime = day
+    date.textContent = dateText(day, archiveDateFormat)
+    const run = streaks.get(day)
+    if (run) {
+      const label = group.querySelector("[data-day-streak]")
+      label.textContent = `第 ${run} 天`
+      label.hidden = false
+    }
+    group.querySelector(".article-list").append(...entries.map(articleRow))
+    container.append(group)
+  }
 }
 
 function checkedDays() {
@@ -173,6 +233,20 @@ function selectCalendarDay(container, cell, moveFocus = false) {
   cell.tabIndex = 0
   container.querySelector(".calendar-caption").textContent = cell.title
   if (moveFocus) cell.focus()
+}
+
+function jumpToArchiveDay(calendar, day) {
+  const archive = main.querySelector("[data-recent]")
+  archive.querySelector(".is-targeted")?.classList.remove("is-targeted")
+  const group = archive.querySelector(`[data-archive-day="${day}"]`)
+  if (!group) {
+    calendar.querySelector(".calendar-caption").textContent += " · 当天无收藏"
+    return
+  }
+  group.classList.add("is-targeted")
+  group.querySelector(".archive-date").focus({ preventScroll: true })
+  const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+  group.scrollIntoView({ behavior, block: "start" })
 }
 
 function buildCalendar(container, days, year) {
@@ -235,7 +309,9 @@ function buildCalendar(container, days, year) {
   container.replaceChildren(viewport, footer)
   container.addEventListener("click", event => {
     const cell = event.target.closest("button[data-day]")
-    if (cell) selectCalendarDay(container, cell)
+    if (!cell) return
+    selectCalendarDay(container, cell)
+    if (!annual) jumpToArchiveDay(container, cell.dataset.day)
   })
   container.addEventListener("keydown", event => {
     const cell = event.target.closest("button[data-day]")
@@ -253,7 +329,7 @@ function buildCalendar(container, days, year) {
 
 function showDesk() {
   main.append(view("desk-view"))
-  showArticles(main.querySelector("[data-recent]"), journal.articles.slice(0, 4))
+  showArticles(main.querySelector("[data-recent]"), journal.articles)
   const days = checkedDays()
   main.querySelector("[data-streak]").textContent = readingStats(days, today).current
   if (days.has(today)) {
@@ -318,8 +394,9 @@ function showReader(article) {
   const reader = main.querySelector(".reader")
   const title = reader.querySelector("[data-article-title]")
   title.textContent = article.title
-  const date = article.day ? dateText(article.day, shortDateFormat) : ""
-  const metadata = [article.source, date, readTime(article.text)].filter(Boolean)
+  const date = article.day ? dateText(article.day, archiveDateFormat) : ""
+  const run = readingStreaks(checkedDays()).get(article.day)
+  const metadata = [article.source, date, run ? `第 ${run} 天` : "", readTime(article.text)].filter(Boolean)
   reader.querySelector("[data-article-meta]").textContent = metadata.join("  ·  ")
   const url = safeSourceUrl(article.url)
   const source = reader.querySelector("[data-article-source]")
@@ -327,7 +404,12 @@ function showReader(article) {
     source.href = url
     source.hidden = false
   }
-  if (article.id === sample.id) reader.querySelector('[data-action="edit"]').hidden = true
+  const remove = reader.querySelector("[data-action=delete]")
+  remove.dataset.articleId = article.id
+  if (article.id === sample.id) {
+    reader.querySelector('[data-action="edit"]').hidden = true
+    remove.hidden = true
+  }
 
   const content = reader.querySelector("[data-article-text]")
   const paragraphs = article.text.split(/\n+/).map(line => line.trim()).filter(Boolean)
@@ -423,6 +505,15 @@ function showError(element, error) {
   element.hidden = false
 }
 
+function openDeleteDialog(id) {
+  const article = findArticle(id)
+  if (!article || article.id === sample.id) return
+  deletingId = id
+  deleteDialog.querySelector("#delete-name").textContent = article.title
+  deleteError.hidden = true
+  deleteDialog.showModal()
+}
+
 function showToast(message, article) {
   toast.querySelector("span").textContent = message
   const link = toast.querySelector("a")
@@ -493,6 +584,30 @@ editorForm.addEventListener("submit", async event => {
   }
 })
 
+deleteForm.addEventListener("submit", async event => {
+  event.preventDefault()
+  if (deleteButton.disabled) return
+  const id = deletingId
+  deleteButton.disabled = true
+  deleteError.hidden = true
+  try {
+    await deleteArticle(id)
+  } catch {
+    showError(deleteError, "暂时无法删除，请重试。")
+    return
+  } finally {
+    deleteButton.disabled = false
+  }
+  deleteDialog.close()
+  if (route().id === id) {
+    history.replaceState(null, "", "#library")
+    window.scrollTo(0, 0)
+  }
+  updates.postMessage("journal-changed")
+  await loadAndRender()
+  showToast("文章已删除")
+})
+
 async function downloadBackup() {
   try {
     const data = await exportJournal()
@@ -538,6 +653,7 @@ document.addEventListener("click", event => {
   const action = control.dataset.action
   if (action === "new") openEditor()
   if (action === "edit") openEditor(findArticle(route().id))
+  if (action === "delete") openDeleteDialog(control.dataset.articleId)
   if (action === "close") control.closest("dialog").close()
   if (action === "backup") {
     backupError.hidden = true

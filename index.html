@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f8f9f5">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css">
-    <script type="module" src="./app.js"></script>
+    <link rel="stylesheet" href="./styles.css?v=3">
+    <script type="module" src="./app.js?v=3"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -28,31 +28,37 @@
       <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.4 4.4L19 7"/></symbol>
       <symbol id="i-edit" viewBox="0 0 24 24"><path d="m13.7 6.4 3.9 3.9m-12 8.1.7-4.6 9.4-9.4a1.5 1.5 0 0 1 2.1 0l1.8 1.8a1.5 1.5 0 0 1 0 2.1l-9.4 9.4-4.6.7Z"/></symbol>
       <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15m-10.5 0v-3h6v3M6 6.5l1 12.1a2 2 0 0 0 2 1.9h6a2 2 0 0 0 2-1.9l1-12.1m-8 4v5.7m4-5.7v5.7"/></symbol>
+      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m7-10.5-3 3 3 3"/></symbol>
+      <symbol id="i-sidebar-expand" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m4-10.5 3 3-3 3"/></symbol>
     </svg>
 
-    <aside class="sidebar" aria-label="外刊日课导航">
-      <a class="brand" href="#desk">
+    <aside class="sidebar" id="sidebar" aria-label="外刊日课导航">
+      <a class="brand" href="#desk" aria-label="外刊日课">
         <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
         <span class="brand-name"><strong>外刊日课</strong><small lang="en">Reading Journal</small></span>
       </a>
       <nav class="navigation" aria-label="主导航">
-        <a class="nav-link" href="#desk" data-nav="desk"><svg class="icon" aria-hidden="true"><use href="#i-desk"/></svg>阅读书桌</a>
-        <a class="nav-link" href="#library" data-nav="library"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg>文章收藏</a>
-        <a class="nav-link" href="#calendar" data-nav="calendar"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>打卡日历</a>
+        <a class="nav-link" href="#desk" data-nav="desk" title="阅读书桌"><svg class="icon" aria-hidden="true"><use href="#i-desk"/></svg><span>阅读书桌</span></a>
+        <a class="nav-link" href="#library" data-nav="library" title="文章收藏"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg><span>文章收藏</span></a>
+        <a class="nav-link" href="#calendar" data-nav="calendar" title="打卡日历"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><span>打卡日历</span></a>
       </nav>
       <div class="sidebar-footer">
-        <button type="button" class="nav-link" data-action="backup"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg>备份与恢复</button>
+        <button type="button" class="nav-link" data-action="backup" title="备份与恢复"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg><span>备份与恢复</span></button>
       </div>
     </aside>
 
     <div class="app-body">
       <header class="topbar">
         <div class="topbar-inner">
-          <a class="brand mobile-brand" href="#desk">
-            <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
-            <strong>外刊日课</strong>
-          </a>
-          <div class="page-label" id="page-label">阅读书桌</div>
+          <div class="topbar-start">
+            <button type="button" class="icon-button sidebar-toggle" id="sidebar-toggle" aria-controls="sidebar" aria-expanded="true" aria-label="收起左侧工具栏" title="收起左侧工具栏"><svg class="icon" aria-hidden="true"><use href="#i-sidebar"/></svg></button>
+            <a class="brand mobile-brand" href="#desk">
+              <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+              <strong>外刊日课</strong>
+            </a>
+            <div class="page-label" id="page-label">阅读书桌</div>
+          </div>
           <div class="topbar-actions">
             <time id="today-label"></time>
             <button type="button" class="icon-button mobile-backup" data-action="backup" aria-label="备份与恢复"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg></button>
@@ -75,14 +81,14 @@
       </section>
 
       <div class="desk-grid">
-        <section aria-labelledby="recent-title">
+        <section class="desk-archive" aria-labelledby="recent-title">
           <div class="section-heading">
             <h2 id="recent-title">文章收藏</h2>
             <a class="text-link" href="#library">全部文章<svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></a>
           </div>
-          <div class="paper article-list" data-recent></div>
+          <div class="archive-list" data-recent></div>
         </section>
-        <section aria-labelledby="checkin-title">
+        <section class="desk-checkins" aria-labelledby="checkin-title">
           <div class="section-heading">
             <h2 id="checkin-title">打卡日历</h2>
             <a class="text-link" href="#calendar">完整日历<svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></a>
@@ -114,16 +120,26 @@
           <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
           <input type="search" data-search placeholder="搜索标题、来源或正文" aria-label="搜索文章">
         </label>
-        <div class="paper article-list full-list" data-library></div>
+        <div class="archive-list full-list" data-library></div>
+      </section>
+    </template>
+
+    <template id="archive-day">
+      <section class="archive-day">
+        <h3 class="archive-date" tabindex="-1"><time></time><span class="day-streak" data-day-streak hidden></span></h3>
+        <div class="paper article-list"></div>
       </section>
     </template>
 
     <template id="article-row">
-      <a class="article-row">
-        <span class="article-mark"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
-        <span class="article-row-body"><strong data-row-title dir="auto"></strong><span data-row-meta></span></span>
-        <svg class="icon row-arrow" aria-hidden="true"><use href="#i-next"/></svg>
-      </a>
+      <div class="article-row">
+        <a class="article-link">
+          <span class="article-mark"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+          <span class="article-row-body"><strong data-row-title dir="auto"></strong><span data-row-meta></span></span>
+          <svg class="icon row-arrow" aria-hidden="true"><use href="#i-next"/></svg>
+        </a>
+        <button type="button" class="icon-button remove-button" data-action="delete" title="删除文章"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
+      </div>
     </template>
 
     <template id="calendar-view">
@@ -156,6 +172,7 @@
           <a class="text-link back-link" href="#library"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg>文章收藏</a>
           <div class="reader-actions">
             <button type="button" class="button secondary compact" data-action="edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg>编辑</button>
+            <button type="button" class="button secondary compact remove-button reader-remove" data-action="delete" aria-label="删除文章" title="删除文章"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
             <details class="reading-preferences">
               <summary class="button secondary compact" aria-label="阅读设置"><span class="type-icon" aria-hidden="true">Aa</span>阅读设置</summary>
               <div class="preferences-popover">
@@ -211,6 +228,19 @@
         <div class="dialog-footer">
           <button type="button" class="button secondary" data-action="close">取消</button>
           <button type="submit" class="button primary" id="save-button">收藏文章</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="delete-dialog" class="dialog delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-name">
+      <div class="dialog-header">
+        <div><h2 id="delete-title">删除文章？</h2><p id="delete-name" dir="auto"></p></div>
+      </div>
+      <form id="delete-form">
+        <p class="form-error" id="delete-error" role="alert" hidden></p>
+        <div class="dialog-footer">
+          <button type="button" class="button secondary" data-action="close" autofocus>取消</button>
+          <button type="submit" class="button danger" id="delete-button">删除文章</button>
         </div>
       </form>
     </dialog>

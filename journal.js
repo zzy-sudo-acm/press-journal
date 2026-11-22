@@ -21,25 +21,25 @@ export function mondayOf(day) {
   return shiftDay(day, -((weekday + 6) % 7))
 }
 
-export function readingStats(days, today) {
-  const pastDays = [...days].filter(day => day <= today).sort()
-  const checked = new Set(pastDays)
-  let current = 0
-  let cursor = checked.has(today) ? today : shiftDay(today, -1)
-  while (checked.has(cursor)) {
-    current += 1
-    cursor = shiftDay(cursor, -1)
-  }
-
-  let longest = 0
+export function readingStreaks(days) {
+  const streaks = new Map()
   let run = 0
   let previous = ""
-  for (const day of pastDays) {
+  for (const day of [...new Set(days)].sort()) {
     run = previous && shiftDay(previous, 1) === day ? run + 1 : 1
-    longest = Math.max(longest, run)
+    streaks.set(day, run)
     previous = day
   }
-  return { current, longest, total: checked.size }
+  return streaks
+}
+
+export function readingStats(days, today) {
+  const streaks = readingStreaks([...days].filter(day => day <= today))
+  return {
+    current: streaks.get(today) ?? streaks.get(shiftDay(today, -1)) ?? 0,
+    longest: [...streaks.values()].reduce((longest, run) => Math.max(longest, run), 0),
+    total: streaks.size
+  }
 }
 
 export function safeSourceUrl(value) {
@@ -80,7 +80,7 @@ export async function loadJournal() {
   const checkins = transaction.objectStore("checkins").getAll()
   await transactionFinished(transaction)
   return {
-    articles: articles.result.sort((a, b) => b.savedAt.localeCompare(a.savedAt)),
+    articles: articles.result.sort((a, b) => b.day.localeCompare(a.day) || Date.parse(b.savedAt) - Date.parse(a.savedAt)),
     checkins: checkins.result
   }
 }
@@ -118,6 +118,13 @@ export async function updateArticle(id, draft) {
     if (existing.result) articles.put({ ...existing.result, ...draft })
     else transaction.abort()
   }
+  await transactionFinished(transaction)
+}
+
+export async function deleteArticle(id) {
+  const db = await openJournal()
+  const transaction = db.transaction("articles", "readwrite")
+  transaction.objectStore("articles").delete(id)
   await transactionFinished(transaction)
 }
 
