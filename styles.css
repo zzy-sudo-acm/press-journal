@@ -477,6 +477,35 @@ input::placeholder, textarea::placeholder { color: #637168; opacity: 1; }
 .dialog-footer { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 9px; padding: 14px 23px 19px; border-top: 1px solid var(--line); }
 .backup-dialog, .delete-dialog { width: min(100% - 28px, 430px); }
 .delete-dialog .dialog-header p { overflow-wrap: anywhere; }
+.transfer-dialog { width: min(100% - 28px, 490px); }
+.transfer-dialog .dialog-header p { overflow-wrap: anywhere; }
+.transfer-details { padding: 0 23px 17px; }
+.transfer-details p { margin-top: 8px; color: var(--muted); font-size: 13px; line-height: 1.6; }
+.incoming-article { max-width: 600px; margin: 14px auto 0; padding: clamp(20px, 5vw, 36px); }
+.incoming-article h1 { font-size: 26px; }
+.incoming-status { margin: 10px 0 16px; color: var(--muted); font-size: 14px; line-height: 1.65; }
+.incoming-details { padding-block: 15px; border-block: 1px solid var(--line); }
+.incoming-details h2 { font: 600 clamp(23px, 4.5vw, 34px)/1.25 var(--serif); overflow-wrap: anywhere; }
+.incoming-details p { margin-top: 8px; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.incoming-actions { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; margin-top: 16px; }
+.update-notice {
+  position: fixed;
+  z-index: 7;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: calc(100% - 24px);
+  padding: 7px 7px 7px 13px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--paper);
+  color: var(--green-dark);
+  box-shadow: 0 5px 17px #1d342528;
+  font-size: 13px;
+}
+.update-notice .icon-button { width: 31px; min-height: 37px; }
 .stamp-dialog { width: min(100% - 28px, 370px); padding: 27px 22px 29px; text-align: center; }
 .stamp-close { position: absolute; top: 9px; right: 9px; }
 .celebration-seal {
@@ -595,6 +624,26 @@ input::placeholder, textarea::placeholder { color: #637168; opacity: 1; }
   }
   .reader-tools .text-link, .reader-tools .compact { min-height: 44px; }
   .reader-actions .reader-remove { width: 44px; }
+  .reader-actions .transfer-button { display: none; }
+  .reading-mode .topbar, .reading-mode .reader-tools, .reading-mode .reading-progress {
+    transition: transform 160ms ease-out, opacity 160ms ease-out;
+  }
+  .reading-bars-hidden .topbar, .reading-bars-hidden .reader-tools, .reading-bars-hidden .reading-progress {
+    transform: translateY(calc(-100% - var(--topbar-height)));
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: transform 160ms ease-out, opacity 160ms ease-out, visibility 0s 160ms;
+  }
+  .reading-bars-hidden::before {
+    content: "";
+    position: fixed;
+    z-index: 4;
+    inset: 0 0 auto;
+    height: env(safe-area-inset-top, 0px);
+    background: var(--ground);
+    pointer-events: none;
+  }
 
   .editor-dialog[open] {
     display: flex;
@@ -612,6 +661,8 @@ input::placeholder, textarea::placeholder { color: #637168; opacity: 1; }
   .editor-dialog .dialog-header, .editor-dialog .dialog-footer { flex: none; }
   .toast { bottom: calc(70px + env(safe-area-inset-bottom, 0px)); right: 14px; }
   .reading-mode .toast { bottom: max(14px, env(safe-area-inset-bottom, 0px)); }
+  .update-notice { right: 12px; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); }
+  .reading-mode .update-notice { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
 }
 @media (max-width: 445px) {
   .desk-cover { grid-template-columns: 1fr; }
@@ -625,7 +676,7 @@ input::placeholder, textarea::placeholder { color: #637168; opacity: 1; }
   .article-row-body strong { font-size: 17px; }
   .article-mark { width: 38px; height: 42px; }
   .article-row:not(.sample-row) .row-arrow { display: none; }
-  .dialog-header, .editor-fields, .dialog-footer { padding-inline: 16px; }
+  .dialog-header, .editor-fields, .dialog-footer, .transfer-details { padding-inline: 16px; }
   .form-error { margin-inline: 16px; }
   .source-grid { grid-template-columns: 1fr; }
   .reader-tools { gap: 5px; }
@@ -635,4 +686,5 @@ input::placeholder, textarea::placeholder { color: #637168; opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
   .stamp-dialog[open] .celebration-seal { animation: none; }
+  .reading-mode .topbar, .reading-mode .reader-tools, .reading-mode .reading-progress { transition: none; }
 }

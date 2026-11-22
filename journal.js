@@ -165,14 +165,15 @@ function addMissing(store, entries, key) {
   }
 }
 
-export async function importJournal(backup) {
-  if (backup?.format !== backupFormat || backup.version !== 1
-    || !Array.isArray(backup.articles) || !backup.articles.every(validArticle)
-    || !Array.isArray(backup.checkins)
-    || !backup.checkins.every(stamp => stamp && validDay(stamp.day) && validTimestamp(stamp.createdAt))) {
-    throw new TypeError("Invalid journal backup")
-  }
+export function isJournalBackup(backup) {
+  return backup?.format === backupFormat && backup.version === 1
+    && Array.isArray(backup.articles) && backup.articles.every(validArticle)
+    && Array.isArray(backup.checkins)
+    && backup.checkins.every(stamp => stamp && validDay(stamp.day) && validTimestamp(stamp.createdAt))
+}
 
+export async function importJournal(backup) {
+  if (!isJournalBackup(backup)) throw new TypeError("Invalid journal backup")
   const db = await openJournal()
   const transaction = db.transaction(["articles", "checkins"], "readwrite")
   addMissing(transaction.objectStore("articles"), backup.articles, "id")

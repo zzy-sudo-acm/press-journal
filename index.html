@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f8f9f5">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=3">
-    <script type="module" src="./app.js?v=3"></script>
+    <link rel="stylesheet" href="./styles.css?v=4">
+    <script type="module" src="./app.js?v=4"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -31,6 +31,7 @@
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15m-10.5 0v-3h6v3M6 6.5l1 12.1a2 2 0 0 0 2 1.9h6a2 2 0 0 0 2-1.9l1-12.1m-8 4v5.7m4-5.7v5.7"/></symbol>
       <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m7-10.5-3 3 3 3"/></symbol>
       <symbol id="i-sidebar-expand" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m4-10.5 3 3-3 3"/></symbol>
+      <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.3"/><path d="M10 5.5h4m-3 13h2"/></symbol>
     </svg>
 
     <aside class="sidebar" id="sidebar" aria-label="外刊日课导航">
@@ -171,6 +172,7 @@
         <div class="reader-tools">
           <a class="text-link back-link" href="#library"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg>文章收藏</a>
           <div class="reader-actions">
+            <button type="button" class="button secondary compact transfer-button" data-action="transfer"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>传到手机</button>
             <button type="button" class="button secondary compact" data-action="edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg>编辑</button>
             <button type="button" class="button secondary compact remove-button reader-remove" data-action="delete" aria-label="删除文章" title="删除文章"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
             <details class="reading-preferences">
@@ -205,6 +207,36 @@
         <progress class="reading-progress" value="0" max="100" aria-label="阅读进度"></progress>
       </div>
     </template>
+
+    <template id="import-view">
+      <section class="paper incoming-article" aria-labelledby="incoming-title">
+        <h1 id="incoming-title">导入文章</h1>
+        <p class="incoming-status" data-import-status role="status">正在打开导入链接…</p>
+        <div class="incoming-details" data-import-preview hidden>
+          <h2 data-import-title dir="auto"></h2>
+          <p data-import-meta></p>
+        </div>
+        <div class="incoming-actions">
+          <a class="text-link" href="#desk">回到书桌</a>
+          <button type="button" class="button primary" data-import-confirm hidden>存入并阅读</button>
+        </div>
+      </section>
+    </template>
+
+    <dialog id="transfer-dialog" class="dialog transfer-dialog" aria-labelledby="transfer-title">
+      <div class="dialog-header">
+        <div><h2 id="transfer-title">传到手机</h2><p id="transfer-name" dir="auto"></p></div>
+        <button type="button" class="icon-button" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <div class="transfer-details">
+        <label class="field" id="transfer-link-field" hidden>文章导入链接<input id="transfer-link" type="text" readonly spellcheck="false" autocomplete="off"></label>
+        <p id="transfer-status" role="status">正在生成导入链接…</p>
+      </div>
+      <div class="dialog-footer">
+        <button type="button" class="button secondary" data-action="export-article">下载单篇文件</button>
+        <button type="button" class="button primary" id="copy-transfer" data-action="copy-transfer" disabled>复制导入链接</button>
+      </div>
+    </dialog>
 
     <dialog id="editor-dialog" class="dialog editor-dialog" aria-labelledby="editor-title">
       <div class="dialog-header">
@@ -269,6 +301,11 @@
       </div>
     </dialog>
 
+    <aside class="update-notice" id="update-notice" aria-label="网站更新" hidden>
+      <span role="status">新版本已上线</span>
+      <button type="button" class="button primary compact" data-apply-update>立即更新</button>
+      <button type="button" class="icon-button" data-dismiss-update aria-label="稍后更新" title="稍后更新"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </aside>
     <div class="toast" id="toast" role="status" aria-live="polite" hidden><span></span><a></a></div>
   </body>
 </html>

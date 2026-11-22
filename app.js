@@ -1,7 +1,9 @@
 import {
   deleteArticle, exportJournal, importJournal, loadJournal, localDay, mondayOf,
   readingStats, readingStreaks, safeSourceUrl, saveArticle, shiftDay, updateArticle
-} from "./journal.js?v=3"
+} from "./journal.js?v=4"
+import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=4"
+import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 
 const sample = {
   id: "sample",
@@ -18,7 +20,7 @@ Placement makes a difference. A seat facing a wall offers privacy but very littl
 Cities spend a great deal of energy finding out where people want to go. It is harder to measure where they would like to stay, especially when staying is a small, unplanned decision. A good bench makes that decision easy. By the time I passed the same spot again, the man and his newspaper had gone. Someone else had taken his place.`
 }
 
-const pages = { desk: "阅读书桌", library: "文章收藏", calendar: "打卡日历", reader: "阅读文章" }
+const pages = { desk: "阅读书桌", library: "文章收藏", calendar: "打卡日历", reader: "阅读文章", import: "导入文章" }
 const main = document.querySelector("#main")
 const editor = document.querySelector("#editor-dialog")
 const editorForm = document.querySelector("#editor-form")
@@ -33,7 +35,12 @@ const stampDialog = document.querySelector("#stamp-dialog")
 const backupDialog = document.querySelector("#backup-dialog")
 const backupFile = document.querySelector("#backup-file")
 const backupError = document.querySelector("#backup-error")
+const transferDialog = document.querySelector("#transfer-dialog")
+const transferLink = document.querySelector("#transfer-link")
+const transferStatus = document.querySelector("#transfer-status")
+const copyTransfer = document.querySelector("#copy-transfer")
 const toast = document.querySelector("#toast")
+const mobileReader = matchMedia("(max-width: 700px)")
 const dateFormat = new Intl.DateTimeFormat("zh-CN", {
   month: "long", day: "numeric", weekday: "short", timeZone: "UTC"
 })
@@ -52,6 +59,9 @@ let editingId = null
 let deletingId = null
 let toastTimeout
 let ready = false
+let pendingTransfer
+let lastReadingScroll = 0
+let readingScrollTravel = 0
 let preferences = { "font-size": "medium", "paper-theme": "white" }
 
 try {
@@ -103,6 +113,7 @@ function icon(name) {
 function route() {
   const hash = location.hash.slice(1)
   if (hash.startsWith("read/")) return { page: "reader", id: hash.slice(5) }
+  if (hash.startsWith("import/")) return { page: "import", code: hash.slice(7) }
   return { page: hash === "library" || hash === "calendar" ? hash : "desk" }
 }
 
@@ -378,6 +389,29 @@ function updateReadingProgress() {
   progress.value = maxScroll > 0 ? Math.min(100, Math.max(0, window.scrollY / maxScroll * 100)) : 100
 }
 
+function revealReadingBars() {
+  document.body.classList.remove("reading-bars-hidden")
+  readingScrollTravel = 0
+  lastReadingScroll = Math.max(0, window.scrollY)
+}
+
+function handleReadingScroll() {
+  updateReadingProgress()
+  const position = Math.max(0, window.scrollY)
+  const delta = position - lastReadingScroll
+  lastReadingScroll = position
+  if (!mobileReader.matches || !document.body.classList.contains("reading-mode")) return
+  if (position < 24) {
+    revealReadingBars()
+    return
+  }
+  readingScrollTravel = delta > 0 ? readingScrollTravel + delta : 0
+  const interacting = main.querySelector(".reading-preferences[open]") || window.getSelection()?.type === "Range"
+  if (position >= 90 && readingScrollTravel >= 32 && !interacting) {
+    document.body.classList.add("reading-bars-hidden")
+  }
+}
+
 function applyReadingPreferences(reader) {
   reader.dataset.fontSize = preferences["font-size"]
   reader.dataset.theme = preferences["paper-theme"]
@@ -408,6 +442,7 @@ function showReader(article) {
   remove.dataset.articleId = article.id
   if (article.id === sample.id) {
     reader.querySelector('[data-action="edit"]').hidden = true
+    reader.querySelector('[data-action="transfer"]').hidden = true
     remove.hidden = true
   }
 
@@ -443,11 +478,62 @@ function renderDate() {
   label.textContent = dateText(today)
 }
 
+async function openTransferredArticle(id, replace = false) {
+  const hash = `#read/${id}`
+  if (replace) history.replaceState(null, "", hash)
+  else history.pushState(null, "", hash)
+  revealReadingBars()
+  window.scrollTo(0, 0)
+  await loadAndRender()
+  main.focus({ preventScroll: true })
+}
+
+async function showArticleImport(code) {
+  main.append(view("import-view"))
+  const panel = main.querySelector(".incoming-article")
+  const status = panel.querySelector("[data-import-status]")
+  let backup
+  try {
+    backup = await readTransferLink(code)
+  } catch {
+    status.textContent = "无法打开这条导入链接。请重新发送链接，或用单篇文件导入。"
+    return
+  }
+  if (!panel.isConnected) return
+  const [article] = backup.articles
+  const saved = Boolean(findArticle(article.id))
+  const button = panel.querySelector("[data-import-confirm]")
+  const date = dateText(article.day, archiveDateFormat)
+  panel.querySelector("[data-import-title]").textContent = article.title
+  panel.querySelector("[data-import-meta]").textContent = [article.source, date, readTime(article.text)].filter(Boolean).join("  ·  ")
+  panel.querySelector("[data-import-preview]").hidden = false
+  if (saved) button.textContent = "阅读已收藏的文章"
+  status.textContent = saved ? "这篇文章已在你的收藏里。" : "标题、正文、收藏日期和原文链接会一起存入。"
+  button.hidden = false
+  button.addEventListener("click", async () => {
+    button.disabled = true
+    if (!saved) {
+      try {
+        await importJournal(backup)
+      } catch {
+        status.textContent = "暂时无法存入文章，请重试。"
+        button.disabled = false
+        return
+      }
+      updates.postMessage("journal-changed")
+    }
+    if (!panel.isConnected) return
+    await openTransferredArticle(article.id, true)
+    if (!saved) showToast("文章已导入")
+  })
+}
+
 function render() {
   if (!ready) return
-  const { page, id } = route()
+  const { page, id, code } = route()
   const article = page === "reader" ? findArticle(id) : undefined
   document.body.classList.toggle("reading-mode", Boolean(article))
+  if (!article) revealReadingBars()
   document.title = `${article?.title ?? pages[page]} · 外刊日课`
   document.querySelector("#page-label").textContent = pages[page]
   renderDate()
@@ -461,6 +547,7 @@ function render() {
   if (page === "library") showLibrary(search)
   if (page === "calendar") showCalendar()
   if (page === "reader") showReader(article)
+  if (page === "import") showArticleImport(code)
 }
 
 function refreshDate(renderView = true) {
@@ -608,15 +695,59 @@ deleteForm.addEventListener("submit", async event => {
   showToast("文章已删除")
 })
 
+function downloadJson(data, filename) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+async function openTransferDialog() {
+  const article = findArticle(route().id)
+  if (!article || article.id === sample.id) return
+  const backup = articleBackup(article, journal.checkins)
+  pendingTransfer = backup
+  transferDialog.querySelector("#transfer-name").textContent = article.title
+  const field = transferDialog.querySelector("#transfer-link-field")
+  field.hidden = true
+  transferLink.value = ""
+  copyTransfer.disabled = true
+  transferStatus.textContent = "正在生成导入链接…"
+  transferDialog.showModal()
+  let url = ""
+  try {
+    url = await createTransferLink(backup)
+  } catch {
+    // The single-article file is available independently of the link.
+  }
+  if (pendingTransfer !== backup || !transferDialog.open) return
+  if (!url) {
+    transferStatus.textContent = "下载单篇文件发给自己，在手机的「备份与恢复」中导入。"
+    return
+  }
+  transferLink.value = url
+  field.hidden = false
+  copyTransfer.disabled = false
+  transferStatus.textContent = "把这条带有全文的链接发给自己，手机打开就能导入。"
+}
+
+async function copyArticleLink() {
+  try {
+    await navigator.clipboard.writeText(transferLink.value)
+    transferStatus.textContent = "链接已复制。发给自己，在手机上打开即可。"
+  } catch {
+    transferLink.focus()
+    transferLink.select()
+    transferStatus.textContent = "已选中导入链接，可以手动复制。"
+  }
+}
+
 async function downloadBackup() {
   try {
     const data = await exportJournal()
-    const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }))
-    const link = document.createElement("a")
-    link.href = url
-    link.download = `外刊日课-${localDay()}.json`
-    link.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    downloadJson(data, `外刊日课-${localDay()}.json`)
     backupDialog.close()
     showToast("备份已下载")
   } catch {
@@ -629,8 +760,10 @@ backupFile.addEventListener("change", async () => {
   backupFile.value = ""
   if (!file) return
   backupError.hidden = true
+  let backup
   try {
-    await importJournal(JSON.parse(await file.text()))
+    backup = JSON.parse(await file.text())
+    await importJournal(backup)
   } catch (error) {
     const invalid = error instanceof SyntaxError || error instanceof TypeError
     showError(backupError, invalid ? "请选择外刊日课导出的 JSON 备份。" : "导入失败，请检查浏览器的存储空间后重试。")
@@ -638,11 +771,20 @@ backupFile.addEventListener("change", async () => {
   }
   backupDialog.close()
   updates.postMessage("journal-changed")
+  if (backup.articleTransfer && backup.articles.length === 1) {
+    await openTransferredArticle(backup.articles[0].id)
+    showToast("文章已导入")
+    return
+  }
   await loadAndRender()
   showToast("备份已合并")
 })
 
 document.addEventListener("click", event => {
+  if (document.body.classList.contains("reading-bars-hidden") && event.target.closest(".app-body")
+    && !event.target.closest("a, button, input, summary") && window.getSelection()?.type !== "Range") {
+    revealReadingBars()
+  }
   const settings = main.querySelector(".reading-preferences[open]")
   if (settings && !settings.contains(event.target)) settings.open = false
   const control = event.target.closest("[data-action]")
@@ -653,6 +795,12 @@ document.addEventListener("click", event => {
   const action = control.dataset.action
   if (action === "new") openEditor()
   if (action === "edit") openEditor(findArticle(route().id))
+  if (action === "transfer") openTransferDialog()
+  if (action === "copy-transfer") copyArticleLink()
+  if (action === "export-article" && pendingTransfer) {
+    downloadJson(pendingTransfer, `外刊日课-单篇-${pendingTransfer.articles[0].day}.json`)
+    transferStatus.textContent = "在手机打开「备份与恢复」，选择这份单篇文件导入。"
+  }
   if (action === "delete") openDeleteDialog(control.dataset.articleId)
   if (action === "close") control.closest("dialog").close()
   if (action === "backup") {
@@ -671,6 +819,7 @@ document.addEventListener("click", event => {
 })
 
 document.addEventListener("keydown", event => {
+  if (event.key === "Tab" && document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
   if (event.key !== "Escape") return
   const settings = main.querySelector(".reading-preferences[open]")
   if (!settings || !settings.contains(document.activeElement)) return
@@ -690,16 +839,19 @@ async function loadAndRender() {
 }
 
 window.addEventListener("hashchange", () => {
+  revealReadingBars()
   render()
   window.scrollTo(0, 0)
   updateReadingProgress()
   main.focus({ preventScroll: true })
 })
-window.addEventListener("scroll", updateReadingProgress, { passive: true })
+window.addEventListener("scroll", handleReadingScroll, { passive: true })
 window.addEventListener("resize", updateReadingProgress)
+mobileReader.addEventListener("change", revealReadingBars)
 window.visualViewport?.addEventListener("resize", fitEditorToViewport)
 window.visualViewport?.addEventListener("scroll", fitEditorToViewport)
 document.addEventListener("visibilitychange", () => refreshDate())
 setInterval(refreshDate, 30_000)
 updates.addEventListener("message", loadAndRender)
-loadAndRender()
+loadAndRender().then(restoreReadingAfterUpdate)
+watchForSiteUpdates()
