@@ -308,8 +308,7 @@ function applyReadingPreferences(reader) {
   updateReadingProgress()
 }
 
-function showReader(id) {
-  const article = findArticle(id)
+function showReader(article) {
   if (!article) {
     message(main, "这篇文章还没收藏", "可以从文章收藏打开此浏览器里的文章。", "file")
     return
@@ -328,7 +327,7 @@ function showReader(id) {
     source.href = url
     source.hidden = false
   }
-  if (id === sample.id) reader.querySelector('[data-action="edit"]').hidden = true
+  if (article.id === sample.id) reader.querySelector('[data-action="edit"]').hidden = true
 
   const content = reader.querySelector("[data-article-text]")
   const paragraphs = article.text.split(/\n+/).map(line => line.trim()).filter(Boolean)
@@ -365,7 +364,9 @@ function renderDate() {
 function render() {
   if (!ready) return
   const { page, id } = route()
-  document.title = `${page === "reader" ? findArticle(id)?.title ?? pages.reader : pages[page]} · 外刊日课`
+  const article = page === "reader" ? findArticle(id) : undefined
+  document.body.classList.toggle("reading-mode", Boolean(article))
+  document.title = `${article?.title ?? pages[page]} · 外刊日课`
   document.querySelector("#page-label").textContent = pages[page]
   renderDate()
   for (const link of document.querySelectorAll("[data-nav]")) {
@@ -377,7 +378,7 @@ function render() {
   if (page === "desk") showDesk()
   if (page === "library") showLibrary(search)
   if (page === "calendar") showCalendar()
-  if (page === "reader") showReader(id)
+  if (page === "reader") showReader(article)
 }
 
 function refreshDate(renderView = true) {
@@ -395,6 +396,13 @@ async function refreshJournal() {
   refreshDate(false)
 }
 
+function fitEditorToViewport() {
+  const viewport = window.visualViewport
+  if (!editor.open || !viewport) return
+  editor.style.setProperty("--editor-viewport-top", `${viewport.offsetTop}px`)
+  editor.style.setProperty("--editor-viewport-height", `${viewport.height}px`)
+}
+
 function openEditor(article) {
   editingId = article?.id ?? null
   editorForm.reset()
@@ -407,6 +415,7 @@ function openEditor(article) {
   document.querySelector("#editor-hint").hidden = Boolean(article)
   saveButton.textContent = article ? "保存修改" : "收藏文章"
   editor.showModal()
+  fitEditorToViewport()
 }
 
 function showError(element, error) {
@@ -572,6 +581,8 @@ window.addEventListener("hashchange", () => {
 })
 window.addEventListener("scroll", updateReadingProgress, { passive: true })
 window.addEventListener("resize", updateReadingProgress)
+window.visualViewport?.addEventListener("resize", fitEditorToViewport)
+window.visualViewport?.addEventListener("scroll", fitEditorToViewport)
 document.addEventListener("visibilitychange", () => refreshDate())
 setInterval(refreshDate, 30_000)
 updates.addEventListener("message", loadAndRender)
