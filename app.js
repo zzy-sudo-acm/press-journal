@@ -402,7 +402,7 @@ function handleReadingScroll() {
   lastReadingScroll = position
   if (!mobileReader.matches || !document.body.classList.contains("reading-mode")) return
   if (position < 24) {
-    revealReadingBars()
+    if (delta < 0) revealReadingBars()
     return
   }
   readingScrollTravel = delta > 0 ? readingScrollTravel + delta : 0
@@ -781,11 +781,13 @@ backupFile.addEventListener("change", async () => {
 })
 
 document.addEventListener("click", event => {
-  if (document.body.classList.contains("reading-bars-hidden") && event.target.closest(".app-body")
-    && !event.target.closest("a, button, input, summary") && window.getSelection()?.type !== "Range") {
-    revealReadingBars()
-  }
   const settings = main.querySelector(".reading-preferences[open]")
+  if (mobileReader.matches && document.body.classList.contains("reading-mode") && !settings
+    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, a, button, input, summary")
+    && window.getSelection()?.type !== "Range") {
+    if (document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
+    else document.body.classList.add("reading-bars-hidden")
+  }
   if (settings && !settings.contains(event.target)) settings.open = false
   const control = event.target.closest("[data-action]")
   if (event.target.closest("[data-stamp-article]")) stampDialog.close()
