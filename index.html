@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="收藏读过的英语外刊，在阅读日历上为今天盖一枚章。">
+    <meta name="theme-color" content="#f8f9f5">
+    <title>外刊日课</title>
+    <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C9.4 4.4 6.4 4 3 4.8v13.1c3.4-.8 6.4-.4 9 1.7 2.6-2.1 5.6-2.5 9-1.7V4.8c-3.4-.8-6.4-.4-9 1.7Zm0 0v13.1M6.5 8.5c1 0 1.8.2 2.5.5m-2.5 3c1 0 1.8.2 2.5.5m6-.5c.7-.3 1.5-.5 2.5-.5"/></symbol>
+      <symbol id="i-desk" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17m-11 0v10.5"/></symbol>
+      <symbol id="i-library" viewBox="0 0 24 24"><path d="M4.5 5.5h4v13h-4zm4 0h4v13h-4zm6.3.6 3.9-1 3 12.4-3.9 1z"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="15" rx="2.3"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></symbol>
+      <symbol id="i-backup" viewBox="0 0 24 24"><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4M12 4v11m-4-4 4 4 4-4"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="i-prev" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14m-5.5-5.5 5.5 5.5-5.5 5.5"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.75"/><path d="m15 15 4.5 4.5"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M13.5 3.5h-6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8.4l-5-4.9Zm0 0v5h5m-10 4h7m-7 4h5"/></symbol>
+      <symbol id="i-stamp" viewBox="0 0 24 24"><path d="M6.5 20h11m-13-3.5h15V15a2.5 2.5 0 0 0-2.5-2.5h-2.3l.8-4.1a3.5 3.5 0 1 0-6.9 0l.8 4.1H7A2.5 2.5 0 0 0 4.5 15Z"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4.4 4.4L19 7"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="m13.7 6.4 3.9 3.9m-12 8.1.7-4.6 9.4-9.4a1.5 1.5 0 0 1 2.1 0l1.8 1.8a1.5 1.5 0 0 1 0 2.1l-9.4 9.4-4.6.7Z"/></symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
+    </svg>
+
+    <aside class="sidebar" aria-label="外刊日课导航">
+      <a class="brand" href="#desk">
+        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+        <span class="brand-name"><strong>外刊日课</strong><small lang="en">Reading Journal</small></span>
+      </a>
+      <nav class="navigation" aria-label="主导航">
+        <a class="nav-link" href="#desk" data-nav="desk"><svg class="icon" aria-hidden="true"><use href="#i-desk"/></svg>阅读书桌</a>
+        <a class="nav-link" href="#library" data-nav="library"><svg class="icon" aria-hidden="true"><use href="#i-library"/></svg>文章收藏</a>
+        <a class="nav-link" href="#calendar" data-nav="calendar"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg>打卡日历</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button type="button" class="nav-link" data-action="backup"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg>备份与恢复</button>
+      </div>
+    </aside>
+
+    <div class="app-body">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <a class="brand mobile-brand" href="#desk">
+            <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+            <strong>外刊日课</strong>
+          </a>
+          <div class="page-label" id="page-label">阅读书桌</div>
+          <div class="topbar-actions">
+            <time id="today-label"></time>
+            <button type="button" class="icon-button mobile-backup" data-action="backup" aria-label="备份与恢复"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg></button>
+          </div>
+        </div>
+      </header>
+      <main id="main" class="main" tabindex="-1">
+        <p class="loading" role="status">正在打开阅读书桌…</p>
+      </main>
+    </div>
+
+    <template id="desk-view">
+      <section class="desk-cover" aria-labelledby="desk-title">
+        <div class="cover-copy">
+          <h1 id="desk-title">今天读了什么？</h1>
+          <p>收藏一篇外刊，为今天盖一枚章。</p>
+          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+        </div>
+        <div class="cover-image"><img src="./assets/desk.webp" width="1200" height="750" alt="" fetchpriority="high"></div>
+      </section>
+
+      <div class="desk-grid">
+        <section aria-labelledby="recent-title">
+          <div class="section-heading">
+            <h2 id="recent-title">文章收藏</h2>
+            <a class="text-link" href="#library">全部文章<svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></a>
+          </div>
+          <div class="paper article-list" data-recent></div>
+        </section>
+        <section aria-labelledby="checkin-title">
+          <div class="section-heading">
+            <h2 id="checkin-title">打卡日历</h2>
+            <a class="text-link" href="#calendar">完整日历<svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></a>
+          </div>
+          <div class="paper checkin-card">
+            <div class="checkin-summary">
+              <div>
+                <div class="streak-value"><strong data-streak>0</strong><span>天</span></div>
+                <div class="stat-label">连续打卡</div>
+              </div>
+              <div class="today-stamp" data-today-stamp>
+                <span class="stamp-ring"><svg class="icon" aria-hidden="true"><use href="#i-stamp"/></svg></span>
+                <span data-today-status>今日未盖章</span>
+              </div>
+            </div>
+            <div data-calendar></div>
+          </div>
+        </section>
+      </div>
+    </template>
+
+    <template id="library-view">
+      <section aria-labelledby="library-title">
+        <div class="screen-heading">
+          <div><h1 id="library-title">文章收藏</h1><p data-library-count></p></div>
+          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+        </div>
+        <label class="search-box">
+          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" data-search placeholder="搜索标题、来源或正文" aria-label="搜索文章">
+        </label>
+        <div class="paper article-list full-list" data-library></div>
+      </section>
+    </template>
+
+    <template id="article-row">
+      <a class="article-row">
+        <span class="article-mark"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+        <span class="article-row-body"><strong data-row-title dir="auto"></strong><span data-row-meta></span></span>
+        <svg class="icon row-arrow" aria-hidden="true"><use href="#i-next"/></svg>
+      </a>
+    </template>
+
+    <template id="calendar-view">
+      <section aria-labelledby="calendar-title">
+        <div class="screen-heading">
+          <div><h1 id="calendar-title">打卡日历</h1><p>每天收藏第一篇文章时，日历会自动盖章。</p></div>
+          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+        </div>
+        <div class="paper calendar-page">
+          <dl class="calendar-stats">
+            <div><dt>连续打卡</dt><dd><strong data-streak></strong> 天</dd></div>
+            <div><dt>最长连续</dt><dd><strong data-longest></strong> 天</dd></div>
+            <div><dt>累计打卡</dt><dd><strong data-total></strong> 天</dd></div>
+          </dl>
+          <div class="calendar-heading">
+            <h2 data-calendar-year></h2>
+            <div class="year-nav">
+              <button type="button" class="icon-button" data-action="prev-year" aria-label="上一年"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg></button>
+              <button type="button" class="icon-button" data-action="next-year" aria-label="下一年"><svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></button>
+            </div>
+          </div>
+          <div data-calendar></div>
+        </div>
+      </section>
+    </template>
+
+    <template id="reader-view">
+      <div class="reader">
+        <div class="reader-tools">
+          <a class="text-link back-link" href="#library"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg>文章收藏</a>
+          <div class="reader-actions">
+            <button type="button" class="button secondary compact" data-action="edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg>编辑</button>
+            <details class="reading-preferences">
+              <summary class="button secondary compact" aria-label="阅读设置"><span class="type-icon" aria-hidden="true">Aa</span>阅读设置</summary>
+              <div class="preferences-popover">
+                <fieldset>
+                  <legend>正文字号</legend>
+                  <label><input type="radio" name="font-size" value="small"><span>小</span></label>
+                  <label><input type="radio" name="font-size" value="medium"><span>中</span></label>
+                  <label><input type="radio" name="font-size" value="large"><span>大</span></label>
+                </fieldset>
+                <fieldset>
+                  <legend>阅读主题</legend>
+                  <label><input type="radio" name="paper-theme" value="white"><span>白纸</span></label>
+                  <label><input type="radio" name="paper-theme" value="warm"><span>暖纸</span></label>
+                  <label><input type="radio" name="paper-theme" value="night"><span>夜读</span></label>
+                </fieldset>
+              </div>
+            </details>
+          </div>
+        </div>
+        <article class="reading-paper">
+          <header class="article-header">
+            <h1 data-article-title dir="auto"></h1>
+            <div class="article-byline">
+              <span data-article-meta></span>
+              <a class="source-link" data-article-source target="_blank" rel="noopener noreferrer" hidden>原文<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+            </div>
+          </header>
+          <div class="article-text" data-article-text></div>
+        </article>
+        <progress class="reading-progress" value="0" max="100" aria-label="阅读进度"></progress>
+      </div>
+    </template>
+
+    <dialog id="editor-dialog" class="dialog editor-dialog" aria-labelledby="editor-title">
+      <div class="dialog-header">
+        <div><h2 id="editor-title">粘贴文章</h2><p id="editor-hint">今天保存的第一篇文章会自动盖章。</p></div>
+        <button type="button" class="icon-button" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <form id="editor-form">
+        <div class="editor-fields">
+          <label class="field">文章标题<span class="optional">可选</span><input name="title" type="text" maxlength="240" placeholder="留空时从正文提取标题"></label>
+          <label class="field" for="article-text">文章正文</label>
+          <textarea id="article-text" name="text" placeholder="把复制的文章粘贴到这里…" required autofocus></textarea>
+          <details id="source-fields" class="source-fields">
+            <summary>添加来源和原文链接</summary>
+            <div class="source-grid">
+              <label class="field">来源<input name="source" type="text" maxlength="120" placeholder="例如 The Guardian"></label>
+              <label class="field">原文链接<input name="url" type="url" inputmode="url" placeholder="https://"></label>
+            </div>
+          </details>
+        </div>
+        <p class="form-error" id="editor-error" role="alert" hidden></p>
+        <div class="dialog-footer">
+          <button type="button" class="button secondary" data-action="close">取消</button>
+          <button type="submit" class="button primary" id="save-button">收藏文章</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="stamp-dialog" class="dialog stamp-dialog" aria-labelledby="stamp-title">
+      <button type="button" class="icon-button stamp-close" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      <div class="celebration-seal" aria-hidden="true">
+        <svg class="icon"><use href="#i-stamp"/></svg>
+        <span data-seal-date></span>
+      </div>
+      <h2 id="stamp-title">今日已盖章</h2>
+      <p class="stamp-count">已连续打卡 <strong data-celebration-streak></strong> 天</p>
+      <a class="button primary" data-stamp-article>阅读刚收藏的文章<svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    </dialog>
+
+    <dialog id="backup-dialog" class="dialog backup-dialog" aria-labelledby="backup-title">
+      <div class="dialog-header">
+        <div><h2 id="backup-title">备份与恢复</h2><p>文章和打卡记录保存在当前浏览器。换设备时，带上你的备份文件。</p></div>
+        <button type="button" class="icon-button" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <p class="form-error" id="backup-error" role="alert" hidden></p>
+      <div class="dialog-footer">
+        <input id="backup-file" type="file" accept=".json,application/json" hidden>
+        <button type="button" class="button secondary" data-action="import">导入备份</button>
+        <button type="button" class="button primary" data-action="export"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg>下载备份</button>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden><span></span><a></a></div>
+  </body>
+</html>
