@@ -107,9 +107,12 @@ export async function fetchPublicArticle(link, signal) {
     throw new Error("暂时无法连接文章读取服务。可以重试或粘贴正文。")
   }
   if (response.status === 429) throw new Error("文章读取服务暂时繁忙。可以稍后重试或粘贴正文。")
+  const payload = await response.json().catch(() => null)
+  if (response.status === 403 && payload?.name === "AbuseAlleviationError") {
+    throw new Error("读取服务暂时限制了该网站的匿名读取。可以稍后重试，或打开原文后粘贴正文。")
+  }
   if ([401, 403, 404, 451].includes(response.status)) throw new Error(unavailable)
   if (!response.ok) throw new Error("文章读取服务暂时不可用。可以重试或粘贴正文。")
-  const payload = await response.json().catch(() => null)
   if (!payload?.data) throw new Error("这个链接没有返回可读取的文章。请核对地址或粘贴正文。")
   return extractArticle(payload.data, link)
 }
