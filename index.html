@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f8f9f5">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=4">
-    <script type="module" src="./app.js?v=5"></script>
+    <link rel="stylesheet" href="./styles.css?v=6">
+    <script type="module" src="./app.js?v=6"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -32,6 +32,7 @@
       <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m7-10.5-3 3 3 3"/></symbol>
       <symbol id="i-sidebar-expand" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m4-10.5 3 3-3 3"/></symbol>
       <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.3"/><path d="M10 5.5h4m-3 13h2"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 13 4-4m-5.5 6.5-1 .9a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m4 .9 1-.9a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"/></symbol>
     </svg>
 
     <aside class="sidebar" id="sidebar" aria-label="外刊日课导航">
@@ -76,7 +77,7 @@
         <div class="cover-copy">
           <h1 id="desk-title">今天读了什么？</h1>
           <p>收藏一篇外刊，为今天盖一枚章。</p>
-          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+          <div class="article-actions" data-article-actions></div>
         </div>
         <div class="cover-image"><img src="./assets/desk.webp" width="1200" height="750" alt="" fetchpriority="high"></div>
       </section>
@@ -115,7 +116,7 @@
       <section aria-labelledby="library-title">
         <div class="screen-heading">
           <div><h1 id="library-title">文章收藏</h1><p data-library-count></p></div>
-          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+          <div class="article-actions" data-article-actions></div>
         </div>
         <label class="search-box">
           <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
@@ -147,7 +148,7 @@
       <section aria-labelledby="calendar-title">
         <div class="screen-heading">
           <div><h1 id="calendar-title">打卡日历</h1><p>每天收藏第一篇文章时，日历会自动盖章。</p></div>
-          <button type="button" class="button primary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+          <div class="article-actions" data-article-actions></div>
         </div>
         <div class="paper calendar-page">
           <dl class="calendar-stats">
@@ -223,6 +224,11 @@
       </section>
     </template>
 
+    <template id="article-actions">
+      <button type="button" class="button primary" data-action="import-link"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg>链接导入</button>
+      <button type="button" class="button secondary" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>粘贴文章</button>
+    </template>
+
     <dialog id="transfer-dialog" class="dialog transfer-dialog" aria-labelledby="transfer-title">
       <div class="dialog-header">
         <div><h2 id="transfer-title">传到手机</h2><p id="transfer-name" dir="auto"></p></div>
@@ -236,6 +242,28 @@
         <button type="button" class="button secondary" data-action="export-article">下载单篇文件</button>
         <button type="button" class="button primary" id="copy-transfer" data-action="copy-transfer" disabled>复制导入链接</button>
       </div>
+    </dialog>
+
+    <dialog id="link-import-dialog" class="dialog editor-dialog link-import-dialog" aria-labelledby="link-import-title">
+      <div class="dialog-header">
+        <div><h2 id="link-import-title">链接导入</h2><p>通过 Jina Reader 读取公开文章，成功后自动收藏。</p></div>
+        <button type="button" class="icon-button" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+      </div>
+      <form id="link-import-form">
+        <div class="editor-fields">
+          <label class="field">文章链接<input id="link-import-url" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://…" required autofocus></label>
+          <details class="source-fields">
+            <summary>支持的外刊</summary>
+            <ol class="link-sources" id="link-import-sources"></ol>
+          </details>
+        </div>
+        <p class="form-error" id="link-import-error" role="alert" hidden></p>
+        <a class="text-link link-import-origin" id="link-import-origin" target="_blank" rel="noopener noreferrer" hidden>打开原文<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
+        <div class="dialog-footer">
+          <button type="button" class="button secondary" data-action="paste-from-link">改用粘贴正文</button>
+          <button type="submit" class="button primary" id="link-import-button">读取并收藏</button>
+        </div>
+      </form>
     </dialog>
 
     <dialog id="editor-dialog" class="dialog editor-dialog" aria-labelledby="editor-title">

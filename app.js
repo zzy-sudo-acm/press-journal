@@ -4,6 +4,7 @@ import {
 } from "./journal.js?v=4"
 import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=4"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
+import { fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=6"
 
 const sample = {
   id: "sample",
@@ -26,6 +27,12 @@ const editor = document.querySelector("#editor-dialog")
 const editorForm = document.querySelector("#editor-form")
 const editorError = document.querySelector("#editor-error")
 const saveButton = document.querySelector("#save-button")
+const linkImportDialog = document.querySelector("#link-import-dialog")
+const linkImportForm = document.querySelector("#link-import-form")
+const linkImportUrl = document.querySelector("#link-import-url")
+const linkImportButton = document.querySelector("#link-import-button")
+const linkImportError = document.querySelector("#link-import-error")
+const linkImportOrigin = document.querySelector("#link-import-origin")
 const deleteDialog = document.querySelector("#delete-dialog")
 const deleteForm = document.querySelector("#delete-form")
 const deleteError = document.querySelector("#delete-error")
@@ -60,6 +67,8 @@ let deletingId = null
 let toastTimeout
 let ready = false
 let pendingTransfer
+let linkRequest
+let linkDraft
 let lastReadingScroll = 0
 let readingScrollTravel = 0
 let preferences = { "font-size": "medium", "paper-theme": "white" }
@@ -99,6 +108,12 @@ sidebarToggle.addEventListener("click", () => {
 function view(name) {
   return document.querySelector(`#${name}`).content.cloneNode(true)
 }
+
+document.querySelector("#link-import-sources").append(...publishers.map(publisher => {
+  const item = document.createElement("li")
+  item.textContent = publisher.name
+  return item
+}))
 
 function icon(name) {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg")
@@ -548,6 +563,7 @@ function render() {
   if (page === "calendar") showCalendar()
   if (page === "reader") showReader(article)
   if (page === "import") showArticleImport(code)
+  main.querySelector("[data-article-actions]")?.append(view("article-actions"))
 }
 
 function refreshDate(renderView = true) {
@@ -567,9 +583,10 @@ async function refreshJournal() {
 
 function fitEditorToViewport() {
   const viewport = window.visualViewport
-  if (!editor.open || !viewport) return
-  editor.style.setProperty("--editor-viewport-top", `${viewport.offsetTop}px`)
-  editor.style.setProperty("--editor-viewport-height", `${viewport.height}px`)
+  const dialog = editor.open ? editor : linkImportDialog
+  if (!dialog.open || !viewport) return
+  dialog.style.setProperty("--editor-viewport-top", `${viewport.offsetTop}px`)
+  dialog.style.setProperty("--editor-viewport-height", `${viewport.height}px`)
 }
 
 function openEditor(article) {
@@ -580,9 +597,9 @@ function openEditor(article) {
     editorForm.elements[field].value = article?.[field] ?? ""
   }
   document.querySelector("#source-fields").open = Boolean(article?.source || article?.url)
-  document.querySelector("#editor-title").textContent = article ? "编辑文章" : "粘贴文章"
-  document.querySelector("#editor-hint").hidden = Boolean(article)
-  saveButton.textContent = article ? "保存修改" : "收藏文章"
+  document.querySelector("#editor-title").textContent = editingId ? "编辑文章" : "粘贴文章"
+  document.querySelector("#editor-hint").hidden = Boolean(editingId)
+  saveButton.textContent = editingId ? "保存修改" : "收藏文章"
   editor.showModal()
   fitEditorToViewport()
 }
@@ -590,6 +607,29 @@ function openEditor(article) {
 function showError(element, error) {
   element.textContent = error
   element.hidden = false
+}
+
+function openLinkImport() {
+  linkImportForm.reset()
+  linkDraft = undefined
+  linkImportError.hidden = true
+  linkImportOrigin.hidden = true
+  linkImportButton.disabled = false
+  linkImportButton.textContent = "读取并收藏"
+  linkImportDialog.showModal()
+  fitEditorToViewport()
+}
+
+function pasteFromLink() {
+  let draft = { url: safeSourceUrl(linkImportUrl.value.trim()) }
+  try {
+    const link = identifyArticleLink(linkImportUrl.value)
+    draft = linkDraft?.url === link.url ? linkDraft : link
+  } catch {
+    // An unsupported link can still be kept with pasted text.
+  }
+  linkImportDialog.close()
+  openEditor(draft)
 }
 
 function openDeleteDialog(id) {
@@ -624,6 +664,73 @@ function celebrate(article) {
   stampDialog.showModal()
 }
 
+async function reportArticleSaved(saved) {
+  updates.postMessage("journal-changed")
+  try {
+    await refreshJournal()
+  } catch {
+    showToast("文章已保存。刷新页面即可重新加载收藏。")
+    return
+  }
+  if (saved?.stamped) {
+    celebrate(saved.article)
+  } else {
+    render()
+    showToast(saved ? "文章已收藏" : "修改已保存", saved?.article)
+  }
+}
+
+linkImportDialog.addEventListener("close", () => {
+  linkRequest?.abort()
+  linkRequest = undefined
+})
+
+linkImportForm.addEventListener("submit", async event => {
+  event.preventDefault()
+  if (linkRequest) return
+  linkImportError.hidden = true
+  linkImportOrigin.hidden = true
+  let link
+  try {
+    link = identifyArticleLink(linkImportUrl.value)
+  } catch (error) {
+    showError(linkImportError, error.message)
+    return
+  }
+
+  const request = new AbortController()
+  linkRequest = request
+  linkImportButton.disabled = true
+  linkImportButton.textContent = "正在读取…"
+  const timeout = setTimeout(() => request.abort(), 30_000)
+  try {
+    const result = await fetchPublicArticle(link, request.signal)
+    clearTimeout(timeout)
+    if (linkRequest !== request || !linkImportDialog.open) return
+    linkDraft = result.article
+    if (result.error) throw new Error(result.error)
+    linkImportButton.textContent = "正在收藏…"
+    const saved = await saveArticle(result.article).catch(() => {
+      throw new Error("已读到正文，但收藏失败。可在粘贴框里重试保存。")
+    })
+    linkImportDialog.close()
+    await reportArticleSaved(saved)
+  } catch (error) {
+    if (linkRequest === request && linkImportDialog.open) {
+      showError(linkImportError, request.signal.aborted ? "读取超时。可以重试或粘贴正文。" : error.message)
+      linkImportOrigin.href = link.url
+      linkImportOrigin.hidden = false
+    }
+  } finally {
+    clearTimeout(timeout)
+    if (linkRequest === request) {
+      linkRequest = undefined
+      linkImportButton.disabled = false
+      linkImportButton.textContent = "读取并收藏"
+    }
+  }
+})
+
 editorForm.addEventListener("submit", async event => {
   event.preventDefault()
   if (saveButton.disabled) return
@@ -656,19 +763,7 @@ editorForm.addEventListener("submit", async event => {
     saveButton.disabled = false
   }
   editor.close()
-  updates.postMessage("journal-changed")
-  try {
-    await refreshJournal()
-  } catch {
-    showToast("文章已保存。刷新页面即可重新加载收藏。")
-    return
-  }
-  if (saved?.stamped) {
-    celebrate(saved.article)
-  } else {
-    render()
-    showToast(saved ? "文章已收藏" : "修改已保存", saved?.article)
-  }
+  await reportArticleSaved(saved)
 })
 
 deleteForm.addEventListener("submit", async event => {
@@ -796,6 +891,8 @@ document.addEventListener("click", event => {
   if (!control) return
   const action = control.dataset.action
   if (action === "new") openEditor()
+  if (action === "import-link") openLinkImport()
+  if (action === "paste-from-link") pasteFromLink()
   if (action === "edit") openEditor(findArticle(route().id))
   if (action === "transfer") openTransferDialog()
   if (action === "copy-transfer") copyArticleLink()
