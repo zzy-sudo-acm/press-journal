@@ -14,6 +14,7 @@ const restrictedTier = /^(?:metered|premium|paid|locked|registration|subscriber[
 const accessTitle = /^(?:access denied|forbidden|just a moment|attention required|page not found|verify (?:that )?you are human|robot check)\b/i
 const accessNotice = /^(?:already a subscriber\b|(?:sign|log) in to (?:read|continue)\b|(?:register|subscribe) to (?:read|continue|unlock)\b|unlock this article\b|this article is (?:only )?for subscribers\b|you(?:['’]ve| have) reached (?:your|the) (?:free )?article limit\b)/i
 const footerHeading = /^(?:explore more on these topics|more on this story|topics|related (?:articles|stories|content)|sign up for (?:our|the) newsletter)[.:]?$/i
+const guardianFooter = /^[ \t*#_>+-]*(?:do you have an opinion on the issues raised in this article\?|year[-‑– ]end fundraiser[ \t*_:.!]*$)/im
 
 function publisherFor(host) {
   return publishers.find(publisher => publisher.domains.some(domain => host === domain || host.endsWith(`.${domain}`)))
@@ -44,6 +45,12 @@ function plainLine(line) {
     .trim()
 }
 
+export function trimPublisherFooter(text, source) {
+  if (!/^(?:the )?guardian$|^卫报$/i.test(source.trim())) return text
+  const boundary = text.search(guardianFooter)
+  return boundary >= 0 ? text.slice(0, boundary).trimEnd() : text
+}
+
 function extractArticle(data, link) {
   const rawTitle = typeof data.title === "string" ? data.title.replace(/\s+/g, " ").trim() : ""
   const title = accessTitle.test(rawTitle) ? "" : rawTitle.slice(0, 240)
@@ -70,7 +77,7 @@ function extractArticle(data, link) {
   if (lines.some(line => accessNotice.test(line))) return { article, error: unavailable }
 
   const paragraphs = []
-  for (const line of lines) {
+  for (const line of trimPublisherFooter(lines.join("\n"), link.source).split("\n")) {
     if (paragraphs.length && footerHeading.test(line)) break
     if (line !== rawTitle && !/^[-*_]{3,}$/.test(line)) paragraphs.push(line)
   }
@@ -80,10 +87,15 @@ function extractArticle(data, link) {
 }
 
 export async function fetchPublicArticle(link, signal) {
+  const headers = { Accept: "application/json", "X-Respond-With": "readability" }
+  if (link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)) {
+    headers["X-Respond-With"] = "markdown"
+    headers["X-Target-Selector"] = "#maincontent"
+  }
   let response
   try {
     response = await fetch(`https://r.jina.ai/${link.publicUrl}`, {
-      headers: { Accept: "application/json", "X-Respond-With": "readability" },
+      headers,
       credentials: "omit",
       referrerPolicy: "no-referrer",
       signal

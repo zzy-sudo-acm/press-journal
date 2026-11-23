@@ -4,7 +4,7 @@ import {
 } from "./journal.js?v=4"
 import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=4"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
-import { fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=6"
+import { fetchPublicArticle, identifyArticleLink, publishers, trimPublisherFooter } from "./link-import.js?v=7"
 
 const sample = {
   id: "sample",
@@ -143,8 +143,8 @@ function dateText(day, formatter = dateFormat) {
     .trim()
 }
 
-function readTime(text) {
-  const count = text.trim().split(/\s+/).length
+function readTime(article) {
+  const count = trimPublisherFooter(article.text, article.source).trim().split(/\s+/).length
   return `约 ${Math.max(1, Math.ceil(count / 220))} 分钟`
 }
 
@@ -180,7 +180,7 @@ function articleRow(article) {
     remove.dataset.articleId = article.id
     remove.setAttribute("aria-label", `删除文章：${article.title}`)
   }
-  row.querySelector("[data-row-meta]").textContent = [article.source, readTime(article.text)].filter(Boolean).join("  ·  ")
+  row.querySelector("[data-row-meta]").textContent = [article.source, readTime(article)].filter(Boolean).join("  ·  ")
   return row
 }
 
@@ -445,7 +445,7 @@ function showReader(article) {
   title.textContent = article.title
   const date = article.day ? dateText(article.day, archiveDateFormat) : ""
   const run = readingStreaks(checkedDays()).get(article.day)
-  const metadata = [article.source, date, run ? `第 ${run} 天` : "", readTime(article.text)].filter(Boolean)
+  const metadata = [article.source, date, run ? `第 ${run} 天` : "", readTime(article)].filter(Boolean)
   reader.querySelector("[data-article-meta]").textContent = metadata.join("  ·  ")
   const url = safeSourceUrl(article.url)
   const source = reader.querySelector("[data-article-source]")
@@ -462,10 +462,11 @@ function showReader(article) {
   }
 
   const content = reader.querySelector("[data-article-text]")
-  const paragraphs = article.text.split(/\n+/).map(line => line.trim()).filter(Boolean)
+  const text = trimPublisherFooter(article.text, article.source)
+  const paragraphs = text.split(/\n+/).map(line => line.trim()).filter(Boolean)
   if (paragraphs.length > 1 && paragraphs[0] === article.title) paragraphs.shift()
   if (!/\p{Script=Han}/u.test(article.title)) title.lang = "en"
-  if (!/\p{Script=Han}/u.test(article.text)) content.lang = "en"
+  if (!/\p{Script=Han}/u.test(text)) content.lang = "en"
   for (const paragraph of paragraphs) {
     const node = document.createElement("p")
     node.dir = "auto"
@@ -520,7 +521,7 @@ async function showArticleImport(code) {
   const button = panel.querySelector("[data-import-confirm]")
   const date = dateText(article.day, archiveDateFormat)
   panel.querySelector("[data-import-title]").textContent = article.title
-  panel.querySelector("[data-import-meta]").textContent = [article.source, date, readTime(article.text)].filter(Boolean).join("  ·  ")
+  panel.querySelector("[data-import-meta]").textContent = [article.source, date, readTime(article)].filter(Boolean).join("  ·  ")
   panel.querySelector("[data-import-preview]").hidden = false
   if (saved) button.textContent = "阅读已收藏的文章"
   status.textContent = saved ? "这篇文章已在你的收藏里。" : "标题、正文、收藏日期和原文链接会一起存入。"
