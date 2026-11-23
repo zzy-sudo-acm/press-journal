@@ -4,7 +4,7 @@ import {
 } from "./journal.js?v=4"
 import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=4"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
-import { fetchPublicArticle, identifyArticleLink, publishers, trimPublisherFooter } from "./link-import.js?v=7"
+import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=8"
 
 const sample = {
   id: "sample",
@@ -144,7 +144,7 @@ function dateText(day, formatter = dateFormat) {
 }
 
 function readTime(article) {
-  const count = trimPublisherFooter(article.text, article.source).trim().split(/\s+/).length
+  const count = cleanPublisherText(article.text, article.source).trim().split(/\s+/).length
   return `约 ${Math.max(1, Math.ceil(count / 220))} 分钟`
 }
 
@@ -462,7 +462,7 @@ function showReader(article) {
   }
 
   const content = reader.querySelector("[data-article-text]")
-  const text = trimPublisherFooter(article.text, article.source)
+  const text = cleanPublisherText(article.text, article.source)
   const paragraphs = text.split(/\n+/).map(line => line.trim()).filter(Boolean)
   if (paragraphs.length > 1 && paragraphs[0] === article.title) paragraphs.shift()
   if (!/\p{Script=Han}/u.test(article.title)) title.lang = "en"

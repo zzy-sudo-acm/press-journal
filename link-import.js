@@ -15,6 +15,8 @@ const accessTitle = /^(?:access denied|forbidden|just a moment|attention require
 const accessNotice = /^(?:already a subscriber\b|(?:sign|log) in to (?:read|continue)\b|(?:register|subscribe) to (?:read|continue|unlock)\b|unlock this article\b|this article is (?:only )?for subscribers\b|you(?:['’]ve| have) reached (?:your|the) (?:free )?article limit\b)/i
 const footerHeading = /^(?:explore more on these topics|more on this story|topics|related (?:articles|stories|content)|sign up for (?:our|the) newsletter)[.:]?$/i
 const guardianFooter = /^[ \t*#_>+-]*(?:do you have an opinion on the issues raised in this article\?|year[-‑– ]end fundraiser[ \t*_:.!]*$)/im
+const guardianCardLine = /^.+[ \t]+Read more[ \t]*(?:\r?\n+|$)/gm
+const guardianBodyBlocks = "#maincontent > .article-body-viewer-selector > :is(p, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, pre, table)"
 
 function publisherFor(host) {
   return publishers.find(publisher => publisher.domains.some(domain => host === domain || host.endsWith(`.${domain}`)))
@@ -45,10 +47,11 @@ function plainLine(line) {
     .trim()
 }
 
-export function trimPublisherFooter(text, source) {
+export function cleanPublisherText(text, source) {
   if (!/^(?:the )?guardian$|^卫报$/i.test(source.trim())) return text
   const boundary = text.search(guardianFooter)
-  return boundary >= 0 ? text.slice(0, boundary).trimEnd() : text
+  const body = boundary >= 0 ? text.slice(0, boundary) : text
+  return body.replace(guardianCardLine, "").trimEnd()
 }
 
 function extractArticle(data, link) {
@@ -77,7 +80,7 @@ function extractArticle(data, link) {
   if (lines.some(line => accessNotice.test(line))) return { article, error: unavailable }
 
   const paragraphs = []
-  for (const line of trimPublisherFooter(lines.join("\n"), link.source).split("\n")) {
+  for (const line of cleanPublisherText(lines.join("\n"), link.source).split("\n")) {
     if (paragraphs.length && footerHeading.test(line)) break
     if (line !== rawTitle && !/^[-*_]{3,}$/.test(line)) paragraphs.push(line)
   }
@@ -90,7 +93,7 @@ export async function fetchPublicArticle(link, signal) {
   const headers = { Accept: "application/json", "X-Respond-With": "readability" }
   if (link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)) {
     headers["X-Respond-With"] = "markdown"
-    headers["X-Target-Selector"] = "#maincontent"
+    headers["X-Target-Selector"] = guardianBodyBlocks
   }
   let response
   try {
