@@ -9,7 +9,7 @@ export const publishers = [
   { name: "Bloomberg Businessweek", domains: ["bloomberg.com", "businessweek.com"] }
 ]
 
-const unavailable = "原站没有提供可读取的全文。可以打开原文，在你能阅读的页面复制正文。"
+const unavailable = "这次未能读取到全文。可以打开原文复制正文。"
 const restrictedTier = /^(?:metered|premium|paid|locked|registration|subscriber[- ]?only)$/i
 const accessTitle = /^(?:access denied|forbidden|just a moment|attention required|page not found|verify (?:that )?you are human|robot check)\b/i
 const accessNotice = /^(?:already a subscriber\b|(?:sign|log) in to (?:read|continue)\b|(?:register|subscribe) to (?:read|continue|unlock)\b|unlock this article\b|this article is (?:only )?for subscribers\b|you(?:['’]ve| have) reached (?:your|the) (?:free )?article limit\b)/i
@@ -94,11 +94,13 @@ export async function fetchPublicArticle(link, signal) {
   if (link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)) {
     headers["X-Respond-With"] = "markdown"
     headers["X-Target-Selector"] = guardianBodyBlocks
+    headers["X-No-Cache"] = "true"
   }
   let response
   try {
     response = await fetch(`https://r.jina.ai/${link.publicUrl}`, {
       headers,
+      cache: "no-store",
       credentials: "omit",
       referrerPolicy: "no-referrer",
       signal
@@ -111,7 +113,9 @@ export async function fetchPublicArticle(link, signal) {
   if (response.status === 403 && payload?.name === "AbuseAlleviationError") {
     throw new Error("读取服务暂时限制了该网站的匿名读取。可以稍后重试，或打开原文后粘贴正文。")
   }
-  if ([401, 403, 404, 451].includes(response.status)) throw new Error(unavailable)
+  if ([401, 403, 404, 451].includes(response.status)) {
+    throw new Error(`读取服务未能打开该链接（${response.status}）。可以稍后重试或打开原文。`)
+  }
   if (!response.ok) throw new Error("文章读取服务暂时不可用。可以重试或粘贴正文。")
   if (!payload?.data) throw new Error("这个链接没有返回可读取的文章。请核对地址或粘贴正文。")
   return extractArticle(payload.data, link)
