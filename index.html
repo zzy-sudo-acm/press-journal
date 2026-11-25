@@ -8,7 +8,7 @@
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./styles.css?v=6">
-    <script type="module" src="./app.js?v=11"></script>
+    <script type="module" src="./app.js?v=12"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -318,13 +318,13 @@
 
     <dialog id="backup-dialog" class="dialog backup-dialog" aria-labelledby="backup-title">
       <div class="dialog-header">
-        <div><h2 id="backup-title">备份与恢复</h2><p>文章和打卡记录保存在当前浏览器。换设备时，带上你的备份文件。</p></div>
+        <div><h2 id="backup-title">备份与恢复</h2><p>整库备份会覆盖当前浏览器的文章和打卡记录。这里也支持导入单篇文件。</p></div>
         <button type="button" class="icon-button" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
       </div>
       <p class="form-error" id="backup-error" role="alert" hidden></p>
       <div class="dialog-footer">
         <input id="backup-file" type="file" accept=".json,application/json" hidden>
-        <button type="button" class="button secondary" data-action="import">导入备份</button>
+        <button type="button" class="button secondary" data-action="import">导入文件</button>
         <button type="button" class="button primary" data-action="export"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg>下载备份</button>
       </div>
     </dialog>

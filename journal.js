@@ -165,6 +165,13 @@ function addMissing(store, entries, key) {
   }
 }
 
+function replaceEntries(store, entries) {
+  const request = store.clear()
+  request.onsuccess = () => {
+    for (const entry of entries) store.add(entry)
+  }
+}
+
 export function isJournalBackup(backup) {
   return backup?.format === backupFormat && backup.version === 1
     && Array.isArray(backup.articles) && backup.articles.every(validArticle)
@@ -172,11 +179,18 @@ export function isJournalBackup(backup) {
     && backup.checkins.every(stamp => stamp && validDay(stamp.day) && validTimestamp(stamp.createdAt))
 }
 
-export async function importJournal(backup) {
-  if (!isJournalBackup(backup)) throw new TypeError("Invalid journal backup")
+export async function importJournal(backup, { replace = false } = {}) {
+  if (!isJournalBackup(backup) || (replace && backup.articleTransfer)) throw new TypeError("Invalid journal backup")
   const db = await openJournal()
   const transaction = db.transaction(["articles", "checkins"], "readwrite")
-  addMissing(transaction.objectStore("articles"), backup.articles, "id")
-  addMissing(transaction.objectStore("checkins"), backup.checkins, "day")
+  const articles = transaction.objectStore("articles")
+  const checkins = transaction.objectStore("checkins")
+  if (replace) {
+    replaceEntries(articles, backup.articles)
+    replaceEntries(checkins, backup.checkins)
+  } else {
+    addMissing(articles, backup.articles, "id")
+    addMissing(checkins, backup.checkins, "day")
+  }
   await transactionFinished(transaction)
 }

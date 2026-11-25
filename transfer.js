@@ -1,4 +1,4 @@
-import { isJournalBackup } from "./journal.js?v=4"
+import { isJournalBackup } from "./journal.js?v=5"
 
 const maxLinkLength = 6000
 const maxArticleBytes = 256 * 1024

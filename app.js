@@ -1,8 +1,8 @@
 import {
-  deleteArticle, exportJournal, importJournal, loadJournal, localDay, mondayOf,
+  deleteArticle, exportJournal, importJournal, isJournalBackup, loadJournal, localDay, mondayOf,
   readingStats, readingStreaks, safeSourceUrl, saveArticle, shiftDay, updateArticle
-} from "./journal.js?v=4"
-import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=4"
+} from "./journal.js?v=5"
+import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=5"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=11"
 
@@ -42,6 +42,7 @@ const stampDialog = document.querySelector("#stamp-dialog")
 const backupDialog = document.querySelector("#backup-dialog")
 const backupFile = document.querySelector("#backup-file")
 const backupError = document.querySelector("#backup-error")
+const backupImportButton = backupDialog.querySelector('[data-action="import"]')
 const transferDialog = document.querySelector("#transfer-dialog")
 const transferLink = document.querySelector("#transfer-link")
 const transferStatus = document.querySelector("#transfer-status")
@@ -856,24 +857,36 @@ backupFile.addEventListener("change", async () => {
   backupFile.value = ""
   if (!file) return
   backupError.hidden = true
+  backupImportButton.disabled = true
   let backup
+  let singleArticle
   try {
     backup = JSON.parse(await file.text())
-    await importJournal(backup)
+    if (!backupDialog.open) return
+    if (!isJournalBackup(backup) || (backup.articleTransfer && backup.articles.length !== 1)) {
+      throw new TypeError("Invalid journal backup")
+    }
+    singleArticle = Boolean(backup.articleTransfer)
+    if (!singleArticle && !window.confirm(
+      `用备份里的 ${backup.articles.length} 篇文章和 ${backup.checkins.length} 条打卡记录覆盖本机？本机独有的记录会被移除。`
+    )) return
+    await importJournal(backup, { replace: !singleArticle })
   } catch (error) {
     const invalid = error instanceof SyntaxError || error instanceof TypeError
     showError(backupError, invalid ? "请选择外刊日课导出的 JSON 备份。" : "导入失败，请检查浏览器的存储空间后重试。")
     return
+  } finally {
+    backupImportButton.disabled = false
   }
   backupDialog.close()
   updates.postMessage("journal-changed")
-  if (backup.articleTransfer && backup.articles.length === 1) {
+  if (singleArticle) {
     await openTransferredArticle(backup.articles[0].id)
     showToast("文章已导入")
     return
   }
   await loadAndRender()
-  showToast("备份已合并")
+  showToast("已用备份覆盖本机记录")
 })
 
 document.addEventListener("click", event => {
