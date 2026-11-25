@@ -16,7 +16,8 @@ const accessNotice = /^(?:already a subscriber\b|(?:sign|log) in to (?:read|cont
 const footerHeading = /^(?:explore more on these topics|more on this story|topics|related (?:articles|stories|content)|sign up for (?:our|the) newsletter)[.:]?$/i
 const guardianFooter = /^[ \t*#_>+-]*(?:do you have an opinion on the issues raised in this article\?|year[-‑– ]end fundraiser[ \t*_:.!]*$)/im
 const guardianCardLine = /^.+[ \t]+Read more[ \t]*(?:\r?\n+|$)/gm
-const guardianBodyBlocks = "#maincontent > .article-body-viewer-selector > :is(p, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, pre, table)"
+const guardianBlockTags = ":is(p, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, pre, table)"
+const guardianBodyBlocks = `#maincontent > .article-body-viewer-selector > ${guardianBlockTags}`
 
 function publisherFor(host) {
   return publishers.find(publisher => publisher.domains.some(domain => host === domain || host.endsWith(`.${domain}`)))
@@ -47,6 +48,22 @@ function plainLine(line) {
     .trim()
 }
 
+function guardianLines(html) {
+  if (typeof html !== "string") return []
+  const template = document.createElement("template")
+  template.innerHTML = html
+  // Reader returns the selected blocks together, without their original wrapper.
+  const blocks = Array.from(template.content.children).filter(block => block.matches(guardianBlockTags))
+  return blocks.flatMap(block => {
+    block.querySelectorAll("script, style, svg, [hidden]").forEach(node => node.remove())
+    block.querySelectorAll("br").forEach(node => node.replaceWith("\u2028"))
+    block.querySelectorAll("p, li, dt, dd, tr").forEach(node => node.append("\u2028"))
+    block.querySelectorAll("th, td").forEach(node => node.append(" "))
+    const text = block.matches("pre") ? block.textContent : block.textContent.replace(/[ \t\r\n\f\u00a0]+/g, " ")
+    return text.split(/[\n\u2028]/).map(line => line.trim()).filter(Boolean)
+  })
+}
+
 export function cleanPublisherText(text, source) {
   if (!/^(?:the )?guardian$|^卫报$/i.test(source.trim())) return text
   const boundary = text.search(guardianFooter)
@@ -54,7 +71,7 @@ export function cleanPublisherText(text, source) {
   return body.replace(guardianCardLine, "").trimEnd()
 }
 
-function extractArticle(data, link) {
+function extractArticle(data, link, useGuardianHtml) {
   const rawTitle = typeof data.title === "string" ? data.title.replace(/\s+/g, " ").trim() : ""
   const title = accessTitle.test(rawTitle) ? "" : rawTitle.slice(0, 240)
   const article = { title, source: link.source, url: link.url, text: "" }
@@ -76,7 +93,7 @@ function extractArticle(data, link) {
   }
 
   const content = typeof data.content === "string" ? data.content : ""
-  const lines = content.split(/\r?\n/).map(plainLine).filter(Boolean)
+  const lines = useGuardianHtml ? guardianLines(data.html) : content.split(/\r?\n/).map(plainLine).filter(Boolean)
   if (lines.some(line => accessNotice.test(line))) return { article, error: unavailable }
 
   const paragraphs = []
@@ -91,8 +108,9 @@ function extractArticle(data, link) {
 
 export async function fetchPublicArticle(link, signal) {
   const headers = { Accept: "application/json", "X-Respond-With": "readability" }
-  if (link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)) {
-    headers["X-Respond-With"] = "markdown"
+  const useGuardianHtml = link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)
+  if (useGuardianHtml) {
+    headers["X-Respond-With"] = "html"
     headers["X-Target-Selector"] = guardianBodyBlocks
     headers["X-No-Cache"] = "true"
   }
@@ -118,5 +136,5 @@ export async function fetchPublicArticle(link, signal) {
   }
   if (!response.ok) throw new Error("文章读取服务暂时不可用。可以重试或粘贴正文。")
   if (!payload?.data) throw new Error("这个链接没有返回可读取的文章。请核对地址或粘贴正文。")
-  return extractArticle(payload.data, link)
+  return extractArticle(payload.data, link, useGuardianHtml)
 }
