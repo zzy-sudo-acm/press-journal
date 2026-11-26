@@ -16,8 +16,17 @@ const accessNotice = /^(?:already a subscriber\b|(?:sign|log) in to (?:read|cont
 const footerHeading = /^(?:explore more on these topics|more on this story|topics|related (?:articles|stories|content)|sign up for (?:our|the) newsletter)[.:]?$/i
 const guardianFooter = /^[ \t*#_>+-]*(?:do you have an opinion on the issues raised in this article\?|year[-‑– ]end fundraiser[ \t*_:.!]*$)/im
 const guardianCardLine = /^.+[ \t]+Read more[ \t]*(?:\r?\n+|$)/gm
-const guardianBlockTags = ":is(p, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, pre, table)"
-const guardianBodyBlocks = `#maincontent > .article-body-viewer-selector > ${guardianBlockTags}`
+const scientificAmericanFooter = /^[ \t*#_>+-]*Subscribe to Support Independent Journalism[ \t*_:.!]*$/im
+const scientificAmericanPlea = /^[ \t*#_>+-]*On supporting science journalism[ \t*_:.!]*\r?\n(?:[ \t]*\r?\n)*[ \t*_]*If you['’]re enjoying this article, consider supporting our award-winning journalism[^\r\n]*(?:\r?\n+|$)/gim
+const scientificAmericanReprint = /^[ \t*_]*This article is reproduced with permission and was[ \t_]+first published[ \t_]+on [^\r\n]*(?:\r?\n+|$)/gim
+const timeNewsletter = /^(?:TIME The Brief\s+FREE · DAILY\s+The free daily\s+newsletter from TIME\.\s+The day['’]s stories, selected by TIME\.|Future Proof\s+Weekly · Making sense of the energy and climate economy)\s*/i
+const timeIssueOffer = /^[ \t*_]*Order your copy of the \d{4} TIME100 issue(?=[\s_*.]|$)/im
+const timeReadMore = /^[ \t*_]*Read more\s*:[^\r\n]*(?:\r?\n+|$)/gim
+const articleBlockTags = ":is(p, h2, h3, h4, h5, h6, ul, ol, dl, blockquote, pre, table)"
+const guardianBodyBlocks = `#maincontent > .article-body-viewer-selector > ${articleBlockTags}`
+const scientificAmericanBodyBlocks = `[class*="article__body-"] > ${articleBlockTags}`
+const timeBody = '[data-testid="paragraph-content"]'
+const timeArticle = `article:has(${timeBody})`
 
 function publisherFor(host) {
   return publishers.find(publisher => publisher.domains.some(domain => host === domain || host.endsWith(`.${domain}`)))
@@ -48,12 +57,15 @@ function plainLine(line) {
     .trim()
 }
 
-function guardianLines(html) {
+function articleLines(html, source) {
   if (typeof html !== "string") return []
   const template = document.createElement("template")
   template.innerHTML = html
-  // Reader returns the selected blocks together, without their original wrapper.
-  const blocks = Array.from(template.content.children).filter(block => block.matches(guardianBlockTags))
+  // TIME can append entire articles after the requested one.
+  const blocks = source === "TIME"
+    ? Array.from(template.content.querySelector(timeArticle)?.querySelectorAll(`${timeBody} ${articleBlockTags}`) ?? [])
+      .filter(block => !block.parentElement.closest(articleBlockTags))
+    : Array.from(template.content.children).filter(block => block.matches(articleBlockTags))
   return blocks.flatMap(block => {
     block.querySelectorAll("script, style, svg, [hidden]").forEach(node => node.remove())
     block.querySelectorAll("br").forEach(node => node.replaceWith("\u2028"))
@@ -65,13 +77,25 @@ function guardianLines(html) {
 }
 
 export function cleanPublisherText(text, source) {
-  if (!/^(?:the )?guardian$|^卫报$/i.test(source.trim())) return text
-  const boundary = text.search(guardianFooter)
-  const body = boundary >= 0 ? text.slice(0, boundary) : text
-  return body.replace(guardianCardLine, "").trimEnd()
+  source = source.trim()
+  if (/^(?:the )?guardian$|^卫报$/i.test(source)) {
+    const boundary = text.search(guardianFooter)
+    return (boundary >= 0 ? text.slice(0, boundary) : text).replace(guardianCardLine, "").trimEnd()
+  }
+  if (/^(?:scientific american|科学美国人)$/i.test(source)) {
+    const boundary = text.search(scientificAmericanFooter)
+    return (boundary >= 0 ? text.slice(0, boundary) : text)
+      .replace(scientificAmericanPlea, "").replace(scientificAmericanReprint, "").trimEnd()
+  }
+  if (/^(?:time|时代周刊)$/i.test(source)) {
+    const boundary = text.search(timeIssueOffer)
+    return (boundary >= 0 ? text.slice(0, boundary) : text)
+      .replace(timeNewsletter, "").replace(timeReadMore, "").trimEnd()
+  }
+  return text
 }
 
-function extractArticle(data, link, useGuardianHtml) {
+function extractArticle(data, link, useHtml) {
   const rawTitle = typeof data.title === "string" ? data.title.replace(/\s+/g, " ").trim() : ""
   const title = accessTitle.test(rawTitle) ? "" : rawTitle.slice(0, 240)
   const article = { title, source: link.source, url: link.url, text: "" }
@@ -93,7 +117,7 @@ function extractArticle(data, link, useGuardianHtml) {
   }
 
   const content = typeof data.content === "string" ? data.content : ""
-  const lines = useGuardianHtml ? guardianLines(data.html) : content.split(/\r?\n/).map(plainLine).filter(Boolean)
+  const lines = useHtml ? articleLines(data.html, link.source) : content.split(/\r?\n/).map(plainLine).filter(Boolean)
   if (lines.some(line => accessNotice.test(line))) return { article, error: unavailable }
 
   const paragraphs = []
@@ -106,14 +130,7 @@ function extractArticle(data, link, useGuardianHtml) {
   return { article: { ...article, text } }
 }
 
-export async function fetchPublicArticle(link, signal) {
-  const headers = { Accept: "application/json", "X-Respond-With": "readability" }
-  const useGuardianHtml = link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)
-  if (useGuardianHtml) {
-    headers["X-Respond-With"] = "html"
-    headers["X-Target-Selector"] = guardianBodyBlocks
-    headers["X-No-Cache"] = "true"
-  }
+async function fetchReader(link, signal, headers) {
   let response
   try {
     response = await fetch(`https://r.jina.ai/${link.publicUrl}`, {
@@ -134,7 +151,28 @@ export async function fetchPublicArticle(link, signal) {
   if ([401, 403, 404, 451].includes(response.status)) {
     throw new Error(`读取服务未能打开该链接（${response.status}）。可以稍后重试或打开原文。`)
   }
+  if (response.status === 422 && payload?.name === "AssertionFailureError" && headers["X-Target-Selector"]
+    && link.source !== "The Guardian") return null
   if (!response.ok) throw new Error("文章读取服务暂时不可用。可以重试或粘贴正文。")
   if (!payload?.data) throw new Error("这个链接没有返回可读取的文章。请核对地址或粘贴正文。")
-  return extractArticle(payload.data, link, useGuardianHtml)
+  return payload.data
+}
+
+export async function fetchPublicArticle(link, signal) {
+  const headers = { Accept: "application/json", "X-Respond-With": "readability" }
+  let selector
+  if (link.source === "The Guardian" && /^\/[^/]+\/\d{4}\//.test(new URL(link.publicUrl).pathname)) {
+    selector = guardianBodyBlocks
+  } else if (link.source === "Scientific American") {
+    selector = scientificAmericanBodyBlocks
+  } else if (link.source === "TIME") {
+    selector = timeArticle
+  }
+  if (selector) {
+    const scoped = { ...headers, "X-Respond-With": "html", "X-Target-Selector": selector }
+    if (selector === guardianBodyBlocks) scoped["X-No-Cache"] = "true"
+    const data = await fetchReader(link, signal, scoped)
+    if (data) return extractArticle(data, link, true)
+  }
+  return extractArticle(await fetchReader(link, signal, headers), link, false)
 }

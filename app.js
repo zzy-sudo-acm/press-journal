@@ -4,7 +4,7 @@ import {
 } from "./journal.js?v=5"
 import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=5"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
-import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=11"
+import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=12"
 
 const sample = {
   id: "sample",
