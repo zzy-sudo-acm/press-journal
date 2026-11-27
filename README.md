@@ -20,4 +20,4 @@
 
 在仓库的 **Settings → Pages** 中将发布来源设为 **Deploy from a branch → main → / (root)**。移动端打开页面或回到前台时会检查 Pages 已发布的版本，点击提示后更新。
 
-封面 `assets/desk.webp` 使用 ImageGen 生成。画面是一册摊开的杂志、一杯黑咖啡，以及落在鼠尾草绿桌面上的斜窗光。
+封面 `assets/desk.webp` 画面是一册摊开的书刊、一支黄铜玳瑁钢笔、一杯奶咖拿铁，以及落在暖燕麦亚麻桌面上的午后斜窗光。

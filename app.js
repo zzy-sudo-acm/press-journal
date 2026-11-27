@@ -34,11 +34,11 @@ const publisherStyles = [
 ]
 
 const themeColors = {
-  default: "#f5f6f0",
-  white: "#f5f6f0",
-  warm: "#efe7d7",
-  sage: "#dfe9dc",
-  night: "#141a17"
+  default: "#f6f2ea",
+  white: "#f6f2ea",
+  warm: "#efe2cc",
+  latte: "#e6dac7",
+  night: "#171311"
 }
 
 const pages = { desk: "阅读书桌", library: "文章收藏", calendar: "打卡日历", reader: "阅读文章", import: "导入文章" }
@@ -110,7 +110,10 @@ let preferences = {
 
 try {
   const stored = JSON.parse(localStorage.getItem(settingsKey))
-  if (stored) preferences = { ...preferences, ...stored }
+  if (stored) {
+    preferences = { ...preferences, ...stored }
+    if (preferences["paper-theme"] === "sage") preferences["paper-theme"] = "latte"
+  }
 } catch {
   // Reading preferences still work for the current visit.
 }
