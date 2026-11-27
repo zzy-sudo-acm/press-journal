@@ -143,6 +143,14 @@ function validTimestamp(value) {
   return typeof value === "string" && Number.isFinite(Date.parse(value))
 }
 
+function validQuiz(quiz) {
+  return Array.isArray(quiz) && quiz.every(question => question
+    && typeof question.prompt === "string" && !!question.prompt.trim()
+    && Array.isArray(question.options) && question.options.length >= 2 && question.options.length <= 4
+    && question.options.every(option => typeof option === "string" && !!option.trim())
+    && Number.isInteger(question.answer) && question.answer >= 0 && question.answer < question.options.length)
+}
+
 function validArticle(article) {
   return article && typeof article.id === "string" && /^[\w-]{1,80}$/.test(article.id)
     && article.id !== "sample"
@@ -150,6 +158,7 @@ function validArticle(article) {
     && typeof article.text === "string" && !!article.text.trim()
     && typeof article.source === "string" && article.source.length <= 120
     && typeof article.url === "string" && (!article.url || !!safeSourceUrl(article.url))
+    && (article.quiz === undefined || validQuiz(article.quiz))
     && validDay(article.day) && validTimestamp(article.savedAt)
 }
 

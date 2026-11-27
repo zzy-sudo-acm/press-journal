@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f8f9f5">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=6">
-    <script type="module" src="./app.js?v=13"></script>
+    <link rel="stylesheet" href="./styles.css?v=7">
+    <script type="module" src="./app.js?v=14"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -204,6 +204,22 @@
             </div>
           </header>
           <div class="article-text" data-article-text></div>
+          <details class="article-quiz" hidden>
+            <summary>
+              <span>阅读理解</span>
+              <span class="quiz-count" data-quiz-count></span>
+              <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
+            </summary>
+            <form class="quiz-form" novalidate>
+              <div class="quiz-questions" data-quiz-questions></div>
+              <div class="quiz-actions">
+                <button type="submit" class="button primary">提交答案</button>
+                <button type="reset" class="button secondary" hidden>重做</button>
+                <p data-quiz-result role="status"></p>
+              </div>
+            </form>
+            <button type="button" class="text-link quiz-edit" data-action="edit-quiz"></button>
+          </details>
         </article>
         <progress class="reading-progress" value="0" max="100" aria-label="阅读进度"></progress>
       </div>
@@ -256,6 +272,7 @@
             <summary>支持的外刊</summary>
             <ol class="link-sources" id="link-import-sources"></ol>
           </details>
+          <label class="quiz-import-option"><input type="checkbox" name="addQuiz">收藏前添加阅读理解题目</label>
         </div>
         <p class="form-error" id="link-import-error" role="alert" hidden></p>
         <a class="text-link link-import-origin" id="link-import-origin" target="_blank" rel="noopener noreferrer" hidden>打开原文<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
@@ -283,6 +300,11 @@
               <label class="field">原文链接<input name="url" type="url" inputmode="url" placeholder="https://"></label>
             </div>
           </details>
+          <details id="quiz-editor" class="source-fields quiz-editor">
+            <summary>阅读理解<span class="optional">可选</span></summary>
+            <div class="quiz-editor-list" data-quiz-editor-list></div>
+            <button type="button" class="button secondary compact" data-quiz-add><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>添加题目</button>
+          </details>
         </div>
         <p class="form-error" id="editor-error" role="alert" hidden></p>
         <div class="dialog-footer">
@@ -291,6 +313,27 @@
         </div>
       </form>
     </dialog>
+
+    <template id="quiz-editor-question">
+      <section class="quiz-editor-question">
+        <div class="quiz-editor-heading">
+          <strong></strong>
+          <button type="button" class="text-link" data-quiz-remove>移除</button>
+        </div>
+        <label class="field">题目<textarea rows="2" dir="auto" data-quiz-prompt></textarea></label>
+        <fieldset class="quiz-editor-options">
+          <legend>填写至少两个选项，并勾选正确答案。</legend>
+        </fieldset>
+      </section>
+    </template>
+
+    <template id="quiz-editor-option">
+      <div class="quiz-editor-option">
+        <input type="radio">
+        <span class="quiz-option-letter" aria-hidden="true"></span>
+        <label class="field"><input type="text" dir="auto"></label>
+      </div>
+    </template>
 
     <dialog id="delete-dialog" class="dialog delete-dialog" aria-labelledby="delete-title" aria-describedby="delete-name">
       <div class="dialog-header">

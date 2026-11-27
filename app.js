@@ -1,10 +1,11 @@
 import {
   deleteArticle, exportJournal, importJournal, isJournalBackup, loadJournal, localDay, mondayOf,
   readingStats, readingStreaks, safeSourceUrl, saveArticle, shiftDay, updateArticle
-} from "./journal.js?v=5"
-import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=5"
+} from "./journal.js?v=6"
+import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=6"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=12"
+import { readQuizEditor, setQuizEditor, showQuiz } from "./quiz.js?v=1"
 
 const sample = {
   id: "sample",
@@ -30,6 +31,7 @@ const saveButton = document.querySelector("#save-button")
 const linkImportDialog = document.querySelector("#link-import-dialog")
 const linkImportForm = document.querySelector("#link-import-form")
 const linkImportUrl = document.querySelector("#link-import-url")
+const linkImportQuiz = linkImportForm.elements.addQuiz
 const linkImportButton = document.querySelector("#link-import-button")
 const linkImportError = document.querySelector("#link-import-error")
 const linkImportOrigin = document.querySelector("#link-import-origin")
@@ -474,6 +476,11 @@ function showReader(article) {
     node.textContent = paragraph
     content.append(node)
   }
+  if (article.id !== sample.id) {
+    const quiz = reader.querySelector(".article-quiz")
+    showQuiz(quiz, article.quiz)
+    quiz.addEventListener("toggle", updateReadingProgress)
+  }
   for (const input of reader.querySelectorAll(".reading-preferences input")) {
     input.checked = input.value === preferences[input.name]
     input.addEventListener("change", () => {
@@ -525,7 +532,7 @@ async function showArticleImport(code) {
   panel.querySelector("[data-import-meta]").textContent = [article.source, date, readTime(article)].filter(Boolean).join("  ·  ")
   panel.querySelector("[data-import-preview]").hidden = false
   if (saved) button.textContent = "阅读已收藏的文章"
-  status.textContent = saved ? "这篇文章已在你的收藏里。" : "标题、正文、收藏日期和原文链接会一起存入。"
+  status.textContent = saved ? "这篇文章已在你的收藏里。" : "文章及附带的阅读理解题目会一起存入。"
   button.hidden = false
   button.addEventListener("click", async () => {
     button.disabled = true
@@ -591,7 +598,7 @@ function fitEditorToViewport() {
   dialog.style.setProperty("--editor-viewport-height", `${viewport.height}px`)
 }
 
-function openEditor(article) {
+function openEditor(article, focusQuiz = false) {
   editingId = article?.id ?? null
   editorForm.reset()
   editorError.hidden = true
@@ -599,11 +606,16 @@ function openEditor(article) {
     editorForm.elements[field].value = article?.[field] ?? ""
   }
   document.querySelector("#source-fields").open = Boolean(article?.source || article?.url)
+  const quizControl = setQuizEditor(article?.quiz, focusQuiz)
   document.querySelector("#editor-title").textContent = editingId ? "编辑文章" : "粘贴文章"
   document.querySelector("#editor-hint").hidden = Boolean(editingId)
   saveButton.textContent = editingId ? "保存修改" : "收藏文章"
   editor.showModal()
   fitEditorToViewport()
+  if (focusQuiz) {
+    quizControl.closest(".quiz-editor").scrollIntoView({ block: "start" })
+    quizControl.focus({ preventScroll: true })
+  }
 }
 
 function showError(element, error) {
@@ -616,6 +628,7 @@ function openLinkImport() {
   linkDraft = undefined
   linkImportError.hidden = true
   linkImportOrigin.hidden = true
+  linkImportQuiz.disabled = false
   linkImportButton.disabled = false
   linkImportButton.textContent = "读取并收藏"
   linkImportDialog.showModal()
@@ -687,6 +700,10 @@ linkImportDialog.addEventListener("close", () => {
   linkRequest = undefined
 })
 
+linkImportQuiz.addEventListener("change", () => {
+  linkImportButton.textContent = linkImportQuiz.checked ? "读取并编辑" : "读取并收藏"
+})
+
 linkImportForm.addEventListener("submit", async event => {
   event.preventDefault()
   if (linkRequest) return
@@ -701,8 +718,10 @@ linkImportForm.addEventListener("submit", async event => {
   }
 
   const request = new AbortController()
+  const addQuiz = linkImportQuiz.checked
   linkRequest = request
   linkImportButton.disabled = true
+  linkImportQuiz.disabled = true
   linkImportButton.textContent = "正在读取…"
   const timeout = setTimeout(() => request.abort(), 30_000)
   try {
@@ -711,6 +730,11 @@ linkImportForm.addEventListener("submit", async event => {
     if (linkRequest !== request || !linkImportDialog.open) return
     linkDraft = result.article
     if (result.error) throw new Error(result.error)
+    if (addQuiz) {
+      linkImportDialog.close()
+      openEditor(result.article, true)
+      return
+    }
     linkImportButton.textContent = "正在收藏…"
     const saved = await saveArticle(result.article).catch(() => {
       throw new Error("已读到正文，但收藏失败。可在粘贴框里重试保存。")
@@ -728,7 +752,8 @@ linkImportForm.addEventListener("submit", async event => {
     if (linkRequest === request) {
       linkRequest = undefined
       linkImportButton.disabled = false
-      linkImportButton.textContent = "读取并收藏"
+      linkImportQuiz.disabled = false
+      linkImportButton.textContent = addQuiz ? "读取并编辑" : "读取并收藏"
     }
   }
 })
@@ -752,11 +777,20 @@ editorForm.addEventListener("submit", async event => {
   }
   const firstLine = text.split("\n", 1)[0].trim()
   const title = fields.get("title").trim() || (firstLine.length > 86 ? `${firstLine.slice(0, 85)}…` : firstLine)
-  const draft = { title, text, source: fields.get("source").trim(), url }
+  let quiz
+  try {
+    quiz = readQuizEditor()
+  } catch (error) {
+    showError(editorError, error.message)
+    return
+  }
+  const draft = { title, text, source: fields.get("source").trim(), url, quiz }
+  const articleId = editingId
+  const quizWasOpen = Boolean(main.querySelector(".article-quiz[open]"))
   saveButton.disabled = true
   let saved
   try {
-    if (editingId) await updateArticle(editingId, draft)
+    if (articleId) await updateArticle(articleId, draft)
     else saved = await saveArticle(draft)
   } catch {
     showError(editorError, "保存失败，正文仍在编辑框里。请检查浏览器的存储空间后重试。")
@@ -766,6 +800,8 @@ editorForm.addEventListener("submit", async event => {
   }
   editor.close()
   await reportArticleSaved(saved)
+  const quizPanel = main.querySelector(".article-quiz")
+  if (quizWasOpen && route().id === articleId && quizPanel) quizPanel.open = true
 })
 
 deleteForm.addEventListener("submit", async event => {
@@ -892,7 +928,7 @@ backupFile.addEventListener("change", async () => {
 document.addEventListener("click", event => {
   const settings = main.querySelector(".reading-preferences[open]")
   if (mobileReader.matches && document.body.classList.contains("reading-mode") && !settings
-    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, a, button, input, summary")
+    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, .article-quiz, a, button, input, summary")
     && window.getSelection()?.type !== "Range") {
     if (document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
     else document.body.classList.add("reading-bars-hidden")
@@ -908,6 +944,7 @@ document.addEventListener("click", event => {
   if (action === "import-link") openLinkImport()
   if (action === "paste-from-link") pasteFromLink()
   if (action === "edit") openEditor(findArticle(route().id))
+  if (action === "edit-quiz") openEditor(findArticle(route().id), true)
   if (action === "transfer") openTransferDialog()
   if (action === "copy-transfer") copyArticleLink()
   if (action === "export-article" && pendingTransfer) {
