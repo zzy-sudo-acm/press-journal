@@ -139,15 +139,16 @@ export function showQuiz(panel, quiz = []) {
       if (correct) score += 1
       const rows = question.querySelectorAll(".quiz-option")
       rows[answer].dataset.result = "correct"
-      rows[answer].querySelector("small").textContent = correct ? "回答正确" : "正确答案"
+      rows[answer].querySelector("small").textContent = correct ? "✓ 回答正确" : "✓ 正确答案"
       if (!correct) {
         const selected = choices[index].closest("label")
         selected.dataset.result = "incorrect"
-        selected.querySelector("small").textContent = "回答错误"
+        selected.querySelector("small").textContent = "× 回答错误"
       }
       question.disabled = true
     })
-    result.textContent = `答对 ${score} / ${quiz.length} 题`
+    const perfection = score === quiz.length ? " · 全部正确！" : ""
+    result.textContent = `答对 ${score} / ${quiz.length} 题${perfection}`
     result.dataset.state = "graded"
     submit.hidden = true
     reset.hidden = false
@@ -156,6 +157,7 @@ export function showQuiz(panel, quiz = []) {
 
   form.addEventListener("change", () => {
     result.textContent = ""
+    delete result.dataset.state
   })
 
   form.addEventListener("reset", () => {
@@ -165,6 +167,7 @@ export function showQuiz(panel, quiz = []) {
       row.querySelector("small").textContent = ""
     }
     result.textContent = ""
+    delete result.dataset.state
     submit.hidden = false
     reset.hidden = true
     form.querySelector("input")?.focus()

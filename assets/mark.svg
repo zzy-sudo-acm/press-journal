@@ -1,4 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="16" fill="#315746"/>
-  <path d="M32 22c-6-5-13-6-21-4v29c8-2 15-1 21 4 6-5 13-6 21-4V18c-8-2-15-1-21 4Zm0 0v29M18 27c3 0 5.5.6 7.5 1.5M18 35c3 0 5.5.6 7.5 1.5M39 36.5c2-.9 4.5-1.5 7.5-1.5" fill="none" stroke="#f6f3e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#35614e"/>
+      <stop offset="100%" stop-color="#1f3e31"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="none" stroke="#f6f3e8" stroke-opacity="0.16" stroke-width="1.5"/>
+  <path d="M32 22c-6-4.8-13-5.8-20.5-3.8v28.2c7.5-2 14.5-1 20.5 3.8 6-4.8 13-5.8 20.5-3.8V18.2C45 16.2 38 17.2 32 22Zm0 0v28.2M18.5 27.5c2.8 0 5.3.6 7.2 1.4M18.5 35c2.8 0 5.3.6 7.2 1.4M38.3 28.9c1.9-.8 4.4-1.4 7.2-1.4M38.3 36.4c1.9-.8 4.4-1.4 7.2-1.4" fill="none" stroke="#f8f4e8" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="48.5" cy="15.5" r="4.5" fill="#b84b3e"/>
 </svg>

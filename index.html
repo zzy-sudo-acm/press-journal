@@ -4,23 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="description" content="收藏读过的英语外刊，在阅读日历上为今天盖一枚章。">
-    <meta name="theme-color" content="#f8f9f5">
+    <meta name="theme-color" content="#f5f6f0">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=7">
-    <script type="module" src="./app.js?v=14"></script>
+    <link rel="stylesheet" href="./styles.css?v=8">
+    <script type="module" src="./app.js?v=15"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.5C9.4 4.4 6.4 4 3 4.8v13.1c3.4-.8 6.4-.4 9 1.7 2.6-2.1 5.6-2.5 9-1.7V4.8c-3.4-.8-6.4-.4-9 1.7Zm0 0v13.1M6.5 8.5c1 0 1.8.2 2.5.5m-2.5 3c1 0 1.8.2 2.5.5m6-.5c.7-.3 1.5-.5 2.5-.5"/></symbol>
-      <symbol id="i-desk" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M3.5 9h17m-11 0v10.5"/></symbol>
+      <symbol id="i-desk" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M3.5 9.2h17m-10.8 0v10.3"/></symbol>
       <symbol id="i-library" viewBox="0 0 24 24"><path d="M4.5 5.5h4v13h-4zm4 0h4v13h-4zm6.3.6 3.9-1 3 12.4-3.9 1z"/></symbol>
-      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="15" rx="2.3"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></symbol>
+      <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M7.5 3.5v4m9-4v4M3.5 10h17M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01"/></symbol>
       <symbol id="i-backup" viewBox="0 0 24 24"><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4M12 4v11m-4-4 4 4 4-4"/></symbol>
       <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
       <symbol id="i-next" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
       <symbol id="i-prev" viewBox="0 0 24 24"><path d="m15 5-7 7 7 7"/></symbol>
       <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4.5 12h14m-5.5-5.5 5.5 5.5-5.5 5.5"/></symbol>
+      <symbol id="i-up" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="5.75"/><path d="m15 15 4.5 4.5"/></symbol>
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M13.5 3.5h-6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V8.4l-5-4.9Zm0 0v5h5m-10 4h7m-7 4h5"/></symbol>
@@ -29,15 +30,23 @@
       <symbol id="i-edit" viewBox="0 0 24 24"><path d="m13.7 6.4 3.9 3.9m-12 8.1.7-4.6 9.4-9.4a1.5 1.5 0 0 1 2.1 0l1.8 1.8a1.5 1.5 0 0 1 0 2.1l-9.4 9.4-4.6.7Z"/></symbol>
       <symbol id="i-external" viewBox="0 0 24 24"><path d="M13 5h6v6m0-6-8 8m7 0v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></symbol>
       <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 6.5h15m-10.5 0v-3h6v3M6 6.5l1 12.1a2 2 0 0 0 2 1.9h6a2 2 0 0 0 2-1.9l1-12.1m-8 4v5.7m4-5.7v5.7"/></symbol>
-      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m7-10.5-3 3 3 3"/></symbol>
-      <symbol id="i-sidebar-expand" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9 4.5v15m4-10.5 3 3-3 3"/></symbol>
+      <symbol id="i-sidebar" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.3"/><path d="M9 4.5v15m7-10.5-3 3 3 3"/></symbol>
+      <symbol id="i-sidebar-expand" viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2.3"/><path d="M9 4.5v15m4-10.5 3 3-3 3"/></symbol>
       <symbol id="i-phone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.3"/><path d="M10 5.5h4m-3 13h2"/></symbol>
       <symbol id="i-link" viewBox="0 0 24 24"><path d="m10 13 4-4m-5.5 6.5-1 .9a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m4 .9 1-.9a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"/></symbol>
+      <symbol id="i-quiz" viewBox="0 0 24 24"><path d="M9 11.5 11.2 13.7 15.5 9.2"/><rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M8.5 16.8h7"/></symbol>
+      <symbol id="i-focus" viewBox="0 0 24 24"><path d="M4 9V6a2 2 0 0 1 2-2h3M15 4h3a2 2 0 0 1 2 2v3M20 15v3a2 2 0 0 1-2 2h-3M9 20H6a2 2 0 0 1-2-2v-3"/></symbol>
+      <symbol id="i-focus-exit" viewBox="0 0 24 24"><path d="M9 4v3a2 2 0 0 1-2 2H4M20 9h-3a2 2 0 0 1-2-2V4M15 20v-3a2 2 0 0 1 2-2h3M4 15h3a2 2 0 0 1 2 2v3"/></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5 14 9l5.5 2-5.5 2-2 5.5L10 13l-5.5-2L10 9l2-5.5Z"/></symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3.5c1.5 2.7 5.5 5 5.5 10a5.5 5.5 0 1 1-11 0c0-2.1.9-3.9 2-5.2.3 1.4 1.2 2.2 2.2 2.2-.3-2.6.2-5 1.3-7Z"/></symbol>
     </svg>
 
     <aside class="sidebar" id="sidebar" aria-label="外刊日课导航">
       <a class="brand" href="#desk" aria-label="外刊日课">
-        <span class="brand-mark"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg></span>
+        <span class="brand-mark">
+          <svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>
+          <span class="brand-seal-dot" aria-hidden="true"></span>
+        </span>
         <span class="brand-name"><strong>外刊日课</strong><small lang="en">Reading Journal</small></span>
       </a>
       <nav class="navigation" aria-label="主导航">
@@ -46,6 +55,13 @@
         <a class="nav-link" href="#calendar" data-nav="calendar" title="打卡日历"><svg class="icon" aria-hidden="true"><use href="#i-calendar"/></svg><span>打卡日历</span></a>
       </nav>
       <div class="sidebar-footer">
+        <a class="sidebar-pulse" href="#calendar" id="sidebar-pulse" title="查看打卡日历">
+          <span class="pulse-seal" aria-hidden="true"><svg class="icon"><use href="#i-stamp"/></svg></span>
+          <span class="pulse-copy">
+            <strong id="sidebar-pulse-title">今日待盖章</strong>
+            <small id="sidebar-pulse-sub">连续打卡 0 天</small>
+          </span>
+        </a>
         <button type="button" class="nav-link" data-action="backup" title="备份与恢复"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg><span>备份与恢复</span></button>
       </div>
     </aside>
@@ -60,8 +76,10 @@
               <strong>外刊日课</strong>
             </a>
             <div class="page-label" id="page-label">阅读书桌</div>
+            <div class="topbar-article-title" id="topbar-article-title" aria-hidden="true" dir="auto"></div>
           </div>
           <div class="topbar-actions">
+            <span class="topbar-progress-pill" id="topbar-progress-pill" hidden>0%</span>
             <time id="today-label"></time>
             <button type="button" class="icon-button mobile-backup" data-action="backup" aria-label="备份与恢复"><svg class="icon" aria-hidden="true"><use href="#i-backup"/></svg></button>
           </div>
@@ -75,11 +93,20 @@
     <template id="desk-view">
       <section class="desk-cover" aria-labelledby="desk-title">
         <div class="cover-copy">
-          <h1 id="desk-title">今天读了什么？</h1>
-          <p>收藏一篇外刊，为今天盖一枚章。</p>
+          <div class="cover-eyebrow" data-desk-eyebrow>晨光书桌 · DAILY EDITION</div>
+          <h1 id="desk-title" data-desk-heading>今天读了什么？</h1>
+          <p data-desk-subtitle>收藏一篇外刊，为今天盖一枚章。</p>
           <div class="article-actions" data-article-actions></div>
+          <dl class="desk-metrics" data-desk-metrics>
+            <div><dt>累计收藏</dt><dd><strong data-metric-articles>0</strong> 篇</dd></div>
+            <div><dt>本月打卡</dt><dd><strong data-metric-month>0</strong> 天</dd></div>
+            <div><dt>累计阅读</dt><dd><strong data-metric-minutes>0</strong> 分钟</dd></div>
+          </dl>
         </div>
-        <div class="cover-image"><img src="./assets/desk.webp" width="1200" height="750" alt="" fetchpriority="high"></div>
+        <div class="cover-image">
+          <img src="./assets/desk.webp" width="1200" height="750" alt="" fetchpriority="high">
+          <div class="cover-image-veil" aria-hidden="true"></div>
+        </div>
       </section>
 
       <div class="desk-grid">
@@ -102,10 +129,13 @@
                 <div class="stat-label">连续打卡</div>
               </div>
               <div class="today-stamp" data-today-stamp>
-                <span class="stamp-ring"><svg class="icon" aria-hidden="true"><use href="#i-stamp"/></svg></span>
+                <span class="stamp-ring">
+                  <svg class="icon" aria-hidden="true"><use href="#i-stamp"/></svg>
+                </span>
                 <span data-today-status>今日未盖章</span>
               </div>
             </div>
+            <div class="week-strip" data-week-strip aria-label="本周打卡进度"></div>
             <div data-calendar></div>
           </div>
         </section>
@@ -118,10 +148,14 @@
           <div><h1 id="library-title">文章收藏</h1><p data-library-count></p></div>
           <div class="article-actions" data-article-actions></div>
         </div>
-        <label class="search-box">
-          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" data-search placeholder="搜索标题、来源或正文" aria-label="搜索文章">
-        </label>
+        <div class="library-toolbar">
+          <label class="search-box">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <input type="search" data-search placeholder="搜索标题、来源或正文" aria-label="搜索文章">
+            <button type="button" class="search-clear" data-search-clear aria-label="清空搜索" hidden><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+          </label>
+          <div class="filter-chips" data-filter-chips role="group" aria-label="按来源筛选" hidden></div>
+        </div>
         <div class="archive-list full-list" data-library></div>
       </section>
     </template>
@@ -136,8 +170,12 @@
     <template id="article-row">
       <div class="article-row">
         <a class="article-link">
-          <span class="article-mark"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
-          <span class="article-row-body"><strong data-row-title dir="auto"></strong><span data-row-meta></span></span>
+          <span class="article-mark" data-article-mark><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></span>
+          <span class="article-row-body">
+            <strong data-row-title dir="auto"></strong>
+            <span class="article-excerpt" data-row-excerpt dir="auto" hidden></span>
+            <span class="article-row-meta" data-row-meta></span>
+          </span>
           <svg class="icon row-arrow" aria-hidden="true"><use href="#i-next"/></svg>
         </a>
         <button type="button" class="icon-button remove-button" data-action="delete" title="删除文章"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
@@ -152,18 +190,31 @@
         </div>
         <div class="paper calendar-page">
           <dl class="calendar-stats">
-            <div><dt>连续打卡</dt><dd><strong data-streak></strong> 天</dd></div>
-            <div><dt>最长连续</dt><dd><strong data-longest></strong> 天</dd></div>
-            <div><dt>累计打卡</dt><dd><strong data-total></strong> 天</dd></div>
+            <div class="stat-tile">
+              <dt><svg class="icon" aria-hidden="true"><use href="#i-flame"/></svg>连续打卡</dt>
+              <dd><strong data-streak>0</strong><span>天</span></dd>
+            </div>
+            <div class="stat-tile">
+              <dt><svg class="icon" aria-hidden="true"><use href="#i-spark"/></svg>最长连续</dt>
+              <dd><strong data-longest>0</strong><span>天</span></dd>
+            </div>
+            <div class="stat-tile">
+              <dt><svg class="icon" aria-hidden="true"><use href="#i-stamp"/></svg>累计打卡</dt>
+              <dd><strong data-total>0</strong><span>天</span></dd>
+            </div>
           </dl>
           <div class="calendar-heading">
-            <h2 data-calendar-year></h2>
+            <div>
+              <h2 data-calendar-year></h2>
+              <p class="calendar-year-sub" data-calendar-year-sub></p>
+            </div>
             <div class="year-nav">
               <button type="button" class="icon-button" data-action="prev-year" aria-label="上一年"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg></button>
               <button type="button" class="icon-button" data-action="next-year" aria-label="下一年"><svg class="icon" aria-hidden="true"><use href="#i-next"/></svg></button>
             </div>
           </div>
           <div data-calendar></div>
+          <div class="calendar-day-drawer" data-calendar-day-drawer hidden></div>
         </div>
       </section>
     </template>
@@ -173,30 +224,49 @@
         <div class="reader-tools">
           <a class="text-link back-link" href="#library"><svg class="icon" aria-hidden="true"><use href="#i-prev"/></svg>文章收藏</a>
           <div class="reader-actions">
+            <button type="button" class="button secondary compact focus-button" data-action="toggle-focus" aria-pressed="false" title="专注阅读模式"><svg class="icon" aria-hidden="true"><use href="#i-focus"/></svg><span>专注</span></button>
             <button type="button" class="button secondary compact transfer-button" data-action="transfer"><svg class="icon" aria-hidden="true"><use href="#i-phone"/></svg>传到手机</button>
             <button type="button" class="button secondary compact" data-action="edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg>编辑</button>
             <button type="button" class="button secondary compact remove-button reader-remove" data-action="delete" aria-label="删除文章" title="删除文章"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
             <details class="reading-preferences">
               <summary class="button secondary compact" aria-label="阅读设置"><span class="type-icon" aria-hidden="true">Aa</span>阅读设置</summary>
               <div class="preferences-popover">
+                <fieldset class="theme-fieldset">
+                  <legend>纸张主题</legend>
+                  <label class="theme-swatch" data-swatch="white"><input type="radio" name="paper-theme" value="white"><span><i></i>白纸</span></label>
+                  <label class="theme-swatch" data-swatch="warm"><input type="radio" name="paper-theme" value="warm"><span><i></i>暖纸</span></label>
+                  <label class="theme-swatch" data-swatch="sage"><input type="radio" name="paper-theme" value="sage"><span><i></i>护眼</span></label>
+                  <label class="theme-swatch" data-swatch="night"><input type="radio" name="paper-theme" value="night"><span><i></i>夜读</span></label>
+                </fieldset>
                 <fieldset>
                   <legend>正文字号</legend>
                   <label><input type="radio" name="font-size" value="small"><span>小</span></label>
                   <label><input type="radio" name="font-size" value="medium"><span>中</span></label>
                   <label><input type="radio" name="font-size" value="large"><span>大</span></label>
+                  <label><input type="radio" name="font-size" value="xlarge"><span>特大</span></label>
                 </fieldset>
-                <fieldset>
-                  <legend>阅读主题</legend>
-                  <label><input type="radio" name="paper-theme" value="white"><span>白纸</span></label>
-                  <label><input type="radio" name="paper-theme" value="warm"><span>暖纸</span></label>
-                  <label><input type="radio" name="paper-theme" value="night"><span>夜读</span></label>
-                </fieldset>
+                <div class="pref-row">
+                  <fieldset>
+                    <legend>字体风格</legend>
+                    <label><input type="radio" name="font-family" value="serif"><span>衬线</span></label>
+                    <label><input type="radio" name="font-family" value="sans"><span>无衬线</span></label>
+                  </fieldset>
+                  <fieldset>
+                    <legend>段落行距</legend>
+                    <label><input type="radio" name="line-height" value="normal"><span>适中</span></label>
+                    <label><input type="radio" name="line-height" value="relaxed"><span>舒展</span></label>
+                  </fieldset>
+                </div>
               </div>
             </details>
           </div>
         </div>
         <article class="reading-paper">
           <header class="article-header">
+            <div class="article-kicker" data-article-kicker hidden>
+              <span class="article-source-pill" data-article-publisher></span>
+              <span class="article-streak-pill" data-article-streak hidden></span>
+            </div>
             <h1 data-article-title dir="auto"></h1>
             <div class="article-byline">
               <span data-article-meta></span>
@@ -204,29 +274,38 @@
             </div>
           </header>
           <div class="article-text" data-article-text></div>
+          <div class="article-colophon" aria-hidden="true"><span>✦</span></div>
           <details class="article-quiz" hidden>
             <summary>
-              <span>阅读理解</span>
+              <span class="quiz-summary-icon" aria-hidden="true"><svg class="icon"><use href="#i-quiz"/></svg></span>
+              <span class="quiz-summary-title">阅读理解</span>
               <span class="quiz-count" data-quiz-count></span>
-              <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
+              <svg class="icon quiz-chevron" aria-hidden="true"><use href="#i-next"/></svg>
             </summary>
-            <form class="quiz-form" novalidate>
-              <div class="quiz-questions" data-quiz-questions></div>
-              <div class="quiz-actions">
-                <button type="submit" class="button primary">提交答案</button>
-                <button type="reset" class="button secondary" hidden>重做</button>
-                <p data-quiz-result role="status"></p>
-              </div>
-            </form>
-            <button type="button" class="text-link quiz-edit" data-action="edit-quiz"></button>
+            <div class="quiz-body">
+              <form class="quiz-form" novalidate>
+                <div class="quiz-questions" data-quiz-questions></div>
+                <div class="quiz-actions">
+                  <button type="submit" class="button primary">提交答案</button>
+                  <button type="reset" class="button secondary" hidden>重做</button>
+                  <p data-quiz-result role="status"></p>
+                </div>
+              </form>
+              <button type="button" class="text-link quiz-edit" data-action="edit-quiz"></button>
+            </div>
           </details>
         </article>
+        <div class="reader-float" data-reader-float hidden>
+          <button type="button" class="float-pill" data-action="jump-quiz" hidden><svg class="icon" aria-hidden="true"><use href="#i-quiz"/></svg><span>做题</span></button>
+          <button type="button" class="float-pill float-top" data-action="scroll-top" aria-label="回到顶部" title="回到顶部" hidden><svg class="icon" aria-hidden="true"><use href="#i-up"/></svg></button>
+        </div>
         <progress class="reading-progress" value="0" max="100" aria-label="阅读进度"></progress>
       </div>
     </template>
 
     <template id="import-view">
       <section class="paper incoming-article" aria-labelledby="incoming-title">
+        <div class="incoming-badge" aria-hidden="true"><svg class="icon"><use href="#i-phone"/></svg></div>
         <h1 id="incoming-title">导入文章</h1>
         <p class="incoming-status" data-import-status role="status">正在打开导入链接…</p>
         <div class="incoming-details" data-import-preview hidden>
@@ -267,12 +346,12 @@
       </div>
       <form id="link-import-form">
         <div class="editor-fields">
-          <label class="field">文章链接<input id="link-import-url" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://…" required autofocus></label>
-          <details class="source-fields">
-            <summary>支持的外刊</summary>
+          <label class="field">文章链接<input id="link-import-url" name="url" type="text" inputmode="url" autocomplete="url" spellcheck="false" placeholder="https://www.theguardian.com/…" required autofocus></label>
+          <details class="source-fields" open>
+            <summary>支持的八家外刊</summary>
             <ol class="link-sources" id="link-import-sources"></ol>
           </details>
-          <label class="quiz-import-option"><input type="checkbox" name="addQuiz">收藏前添加阅读理解题目</label>
+          <label class="quiz-import-option"><input type="checkbox" name="addQuiz"><span>收藏前添加阅读理解题目</span></label>
         </div>
         <p class="form-error" id="link-import-error" role="alert" hidden></p>
         <a class="text-link link-import-origin" id="link-import-origin" target="_blank" rel="noopener noreferrer" hidden>打开原文<svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a>
@@ -291,8 +370,11 @@
       <form id="editor-form">
         <div class="editor-fields">
           <label class="field">文章标题<span class="optional">可选</span><input name="title" type="text" maxlength="240" placeholder="留空时从正文提取标题"></label>
-          <label class="field" for="article-text">文章正文</label>
-          <textarea id="article-text" name="text" placeholder="把复制的文章粘贴到这里…" required autofocus></textarea>
+          <div class="field-heading-row">
+            <label class="field" for="article-text">文章正文</label>
+            <span class="word-counter" id="editor-word-count" aria-live="polite"></span>
+          </div>
+          <textarea id="article-text" name="text" placeholder="把复制的外刊正文粘贴到这里…" required autofocus></textarea>
           <details id="source-fields" class="source-fields">
             <summary>添加来源和原文链接</summary>
             <div class="source-grid">
@@ -350,9 +432,11 @@
 
     <dialog id="stamp-dialog" class="dialog stamp-dialog" aria-labelledby="stamp-title">
       <button type="button" class="icon-button stamp-close" data-action="close" aria-label="关闭"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
-      <div class="celebration-seal" aria-hidden="true">
-        <svg class="icon"><use href="#i-stamp"/></svg>
-        <span data-seal-date></span>
+      <div class="celebration-halo" aria-hidden="true">
+        <div class="celebration-seal">
+          <svg class="icon"><use href="#i-stamp"/></svg>
+          <span data-seal-date></span>
+        </div>
       </div>
       <h2 id="stamp-title">今日已盖章</h2>
       <p class="stamp-count">已连续打卡 <strong data-celebration-streak></strong> 天</p>
@@ -377,6 +461,10 @@
       <button type="button" class="button primary compact" data-apply-update>立即更新</button>
       <button type="button" class="icon-button" data-dismiss-update aria-label="稍后更新" title="稍后更新"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
     </aside>
-    <div class="toast" id="toast" role="status" aria-live="polite" hidden><span></span><a></a></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden>
+      <svg class="icon toast-icon" aria-hidden="true"><use href="#i-check"/></svg>
+      <span></span>
+      <a></a>
+    </div>
   </body>
 </html>

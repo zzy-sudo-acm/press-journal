@@ -5,7 +5,7 @@ import {
 import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=6"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=12"
-import { readQuizEditor, setQuizEditor, showQuiz } from "./quiz.js?v=1"
+import { readQuizEditor, setQuizEditor, showQuiz } from "./quiz.js?v=2"
 
 const sample = {
   id: "sample",
@@ -22,11 +22,31 @@ Placement makes a difference. A seat facing a wall offers privacy but very littl
 Cities spend a great deal of energy finding out where people want to go. It is harder to measure where they would like to stay, especially when staying is a small, unplanned decision. A good bench makes that decision easy. By the time I passed the same spot again, the man and his newspaper had gone. Someone else had taken his place.`
 }
 
+const publisherStyles = [
+  { key: "economist", monogram: "E", match: /economist|经济学人/i },
+  { key: "guardian", monogram: "G", match: /guardian|卫报/i },
+  { key: "sciam", monogram: "SA", match: /scientific american|科学美国人/i },
+  { key: "nyt", monogram: "T", match: /new york times|nytimes|纽约时报/i },
+  { key: "wapo", monogram: "WP", match: /washington post|华盛顿邮报/i },
+  { key: "time", monogram: "Ti", match: /^time$|时代周刊/i },
+  { key: "atlantic", monogram: "A", match: /atlantic|大西洋月刊/i },
+  { key: "bloomberg", monogram: "BB", match: /bloomberg|businessweek|彭博/i }
+]
+
+const themeColors = {
+  default: "#f5f6f0",
+  white: "#f5f6f0",
+  warm: "#efe7d7",
+  sage: "#dfe9dc",
+  night: "#141a17"
+}
+
 const pages = { desk: "阅读书桌", library: "文章收藏", calendar: "打卡日历", reader: "阅读文章", import: "导入文章" }
 const main = document.querySelector("#main")
 const editor = document.querySelector("#editor-dialog")
 const editorForm = document.querySelector("#editor-form")
 const editorError = document.querySelector("#editor-error")
+const editorWordCount = document.querySelector("#editor-word-count")
 const saveButton = document.querySelector("#save-button")
 const linkImportDialog = document.querySelector("#link-import-dialog")
 const linkImportForm = document.querySelector("#link-import-form")
@@ -40,6 +60,12 @@ const deleteForm = document.querySelector("#delete-form")
 const deleteError = document.querySelector("#delete-error")
 const deleteButton = document.querySelector("#delete-button")
 const sidebarToggle = document.querySelector("#sidebar-toggle")
+const sidebarPulse = document.querySelector("#sidebar-pulse")
+const sidebarPulseTitle = document.querySelector("#sidebar-pulse-title")
+const sidebarPulseSub = document.querySelector("#sidebar-pulse-sub")
+const topbarArticleTitle = document.querySelector("#topbar-article-title")
+const topbarProgressPill = document.querySelector("#topbar-progress-pill")
+const themeColorMeta = document.querySelector('meta[name="theme-color"]')
 const stampDialog = document.querySelector("#stamp-dialog")
 const backupDialog = document.querySelector("#backup-dialog")
 const backupFile = document.querySelector("#backup-file")
@@ -74,7 +100,13 @@ let linkRequest
 let linkDraft
 let lastReadingScroll = 0
 let readingScrollTravel = 0
-let preferences = { "font-size": "medium", "paper-theme": "white" }
+let activeLibraryFilter = "all"
+let preferences = {
+  "font-size": "medium",
+  "paper-theme": "white",
+  "font-family": "serif",
+  "line-height": "normal"
+}
 
 try {
   const stored = JSON.parse(localStorage.getItem(settingsKey))
@@ -107,6 +139,16 @@ sidebarToggle.addEventListener("click", () => {
     // The toolbar can still be toggled for the current visit.
   }
 })
+
+function setFocusMode(enabled) {
+  document.body.classList.toggle("focus-mode", enabled)
+  const button = main.querySelector('[data-action="toggle-focus"]')
+  if (!button) return
+  button.setAttribute("aria-pressed", String(enabled))
+  button.title = enabled ? "退出专注模式" : "专注阅读模式"
+  button.querySelector("use").setAttribute("href", enabled ? "#i-focus-exit" : "#i-focus")
+  button.querySelector("span").textContent = enabled ? "退出专注" : "专注"
+}
 
 function view(name) {
   return document.querySelector(`#${name}`).content.cloneNode(true)
@@ -146,9 +188,45 @@ function dateText(day, formatter = dateFormat) {
     .trim()
 }
 
+function countWords(text, source = "") {
+  const cleaned = cleanPublisherText(text, source).trim()
+  if (!cleaned) return 0
+  return cleaned.split(/\s+/).length
+}
+
+function readMinutes(article) {
+  return Math.max(1, Math.ceil(countWords(article.text, article.source) / 220))
+}
+
 function readTime(article) {
-  const count = cleanPublisherText(article.text, article.source).trim().split(/\s+/).length
-  return `约 ${Math.max(1, Math.ceil(count / 220))} 分钟`
+  return `约 ${readMinutes(article)} 分钟`
+}
+
+function articleExcerpt(article) {
+  const cleaned = cleanPublisherText(article.text, article.source)
+  const paragraphs = cleaned.split(/\n+/).map(line => line.trim()).filter(Boolean)
+  if (paragraphs.length > 1 && paragraphs[0] === article.title) paragraphs.shift()
+  const first = paragraphs[0] ?? ""
+  return first.length > 180 ? `${first.slice(0, 178).trimEnd()}…` : first
+}
+
+function publisherBadgeInfo(article) {
+  if (article.id === sample.id) return { key: "sample", monogram: null, icon: "book" }
+  const source = (article.source || "").trim()
+  if (source) {
+    const matched = publisherStyles.find(item => item.match.test(source))
+    if (matched) return { key: matched.key, monogram: matched.monogram }
+    const initials = source.replace(/^The\s+/i, "").trim().slice(0, 2).toUpperCase()
+    if (initials) return { key: "custom", monogram: initials }
+  }
+  return { key: "custom", monogram: null, icon: "file" }
+}
+
+function greetingCopy() {
+  const hour = new Date().getHours()
+  if (hour < 11) return { eyebrow: "晨光书桌 · MORNING EDITION", heading: "晨读一篇好外刊" }
+  if (hour < 18) return { eyebrow: "午后书桌 · AFTERNOON EDITION", heading: "今天读了什么？" }
+  return { eyebrow: "灯下夜读 · EVENING EDITION", heading: "今晚读点什么？" }
 }
 
 function message(container, heading, body, symbol = "book") {
@@ -171,29 +249,75 @@ function articleRow(article) {
   const row = view("article-row")
   const link = row.querySelector("a")
   const title = row.querySelector("[data-row-title]")
+  const excerpt = row.querySelector("[data-row-excerpt]")
+  const mark = row.querySelector("[data-article-mark]")
+  const meta = row.querySelector("[data-row-meta]")
   const remove = row.querySelector("[data-action=delete]")
   link.href = `#read/${article.id}`
   title.textContent = article.title
+
+  const badge = publisherBadgeInfo(article)
+  mark.dataset.pub = badge.key
+  if (badge.monogram) {
+    mark.textContent = badge.monogram
+  } else {
+    mark.replaceChildren(icon(badge.icon || "file"))
+  }
+
+  const preview = articleExcerpt(article)
+  if (preview) {
+    excerpt.textContent = preview
+    if (!/\p{Script=Han}/u.test(preview)) excerpt.lang = "en"
+    excerpt.hidden = false
+  }
+
   if (article.id === sample.id) {
     title.lang = "en"
     link.parentElement.classList.add("sample-row")
-    link.querySelector("use").setAttribute("href", "#i-book")
     remove.hidden = true
   } else {
+    if (!/\p{Script=Han}/u.test(article.title)) title.lang = "en"
     remove.dataset.articleId = article.id
     remove.setAttribute("aria-label", `删除文章：${article.title}`)
   }
-  row.querySelector("[data-row-meta]").textContent = [article.source, readTime(article)].filter(Boolean).join("  ·  ")
+
+  const words = countWords(article.text, article.source)
+  const parts = []
+  if (article.source) {
+    const src = document.createElement("span")
+    src.className = "meta-source"
+    src.textContent = article.source
+    parts.push(src)
+  }
+  const timeSpan = document.createElement("span")
+  timeSpan.textContent = words ? `${words} 词 · ${readTime(article)}` : readTime(article)
+  parts.push(timeSpan)
+  parts.forEach((node, index) => {
+    if (index > 0) {
+      const dot = document.createElement("span")
+      dot.className = "meta-dot"
+      dot.textContent = "·"
+      dot.setAttribute("aria-hidden", "true")
+      meta.append(dot)
+    }
+    meta.append(node)
+  })
+  if (article.quiz?.length) {
+    const pill = document.createElement("span")
+    pill.className = "meta-quiz-pill"
+    pill.append(icon("quiz"), `${article.quiz.length} 题阅读理解`)
+    meta.append(pill)
+  }
   return row
 }
 
-function showArticles(container, articles, query = "") {
+function showArticles(container, articles, query = "", hasFilter = false) {
   container.replaceChildren()
   if (!articles.length) {
     const list = document.createElement("div")
     list.className = "paper article-list"
-    if (query) {
-      message(list, "没找到相关文章", "试试其他关键词。", "search")
+    if (query || hasFilter) {
+      message(list, "没找到相关文章", "试试更换筛选条件或其他关键词。", "search")
     } else {
       message(list, "书架还是空的", "收藏一篇外刊，随时回来重读。")
       list.append(articleRow(sample))
@@ -217,7 +341,7 @@ function showArticles(container, articles, query = "") {
     const run = streaks.get(day)
     if (run) {
       const label = group.querySelector("[data-day-streak]")
-      label.textContent = `第 ${run} 天`
+      label.textContent = `连续第 ${run} 天`
       label.hidden = false
     }
     group.querySelector(".article-list").append(...entries.map(articleRow))
@@ -227,6 +351,36 @@ function showArticles(container, articles, query = "") {
 
 function checkedDays() {
   return new Set(journal.checkins.map(stamp => stamp.day))
+}
+
+function updateSidebarPulse() {
+  const days = checkedDays()
+  const stats = readingStats(days, today)
+  const stamped = days.has(today)
+  sidebarPulse.classList.toggle("is-stamped", stamped)
+  sidebarPulseTitle.textContent = stamped ? "今日已盖章" : "今日待盖章"
+  sidebarPulseSub.textContent = stats.current > 0 ? `连续打卡 ${stats.current} 天` : "保存一篇文章开始打卡"
+}
+
+function buildWeekStrip(container, days) {
+  const start = mondayOf(today)
+  const labels = ["一", "二", "三", "四", "五", "六", "日"]
+  container.replaceChildren()
+  labels.forEach((label, offset) => {
+    const day = shiftDay(start, offset)
+    const item = document.createElement("div")
+    item.className = "week-dot"
+    if (days.has(day)) item.classList.add("is-checked")
+    if (day === today) item.classList.add("is-today")
+    if (day > today) item.classList.add("is-future")
+    item.title = `${dateText(day)} · ${days.has(day) ? "已盖章" : day > today ? "未到" : "未盖章"}`
+    const dot = document.createElement("i")
+    if (days.has(day)) dot.append(icon("check"))
+    const text = document.createElement("span")
+    text.textContent = label
+    item.append(dot, text)
+    container.append(item)
+  })
 }
 
 function calendarCell(day, checked, selected) {
@@ -241,7 +395,9 @@ function calendarCell(day, checked, selected) {
   cell.type = "button"
   cell.dataset.day = day
   cell.tabIndex = selected ? 0 : -1
-  cell.title = `${dateText(day)} · ${checked ? "已盖章" : "未盖章"}`
+  const count = journal.articles.filter(a => a.day === day).length
+  const extra = count > 0 ? ` · ${count} 篇` : ""
+  cell.title = `${dateText(day)} · ${checked ? "已盖章" : "未盖章"}${extra}`
   cell.setAttribute("aria-label", cell.title)
   cell.setAttribute("aria-pressed", String(selected))
   if (day === today) cell.setAttribute("aria-current", "date")
@@ -276,6 +432,49 @@ function jumpToArchiveDay(calendar, day) {
   group.querySelector(".archive-date").focus({ preventScroll: true })
   const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
   group.scrollIntoView({ behavior, block: "start" })
+}
+
+function renderCalendarDayDrawer(day) {
+  const drawer = main.querySelector("[data-calendar-day-drawer]")
+  if (!drawer) return
+  const days = checkedDays()
+  const entries = journal.articles.filter(article => article.day === day)
+  const stamped = days.has(day)
+  drawer.replaceChildren()
+
+  const header = document.createElement("div")
+  header.className = "drawer-header"
+  const heading = document.createElement("h3")
+  heading.textContent = dateText(day, archiveDateFormat)
+  const badge = document.createElement("span")
+  badge.className = `drawer-badge${stamped ? " is-stamped" : ""}`
+  badge.textContent = stamped ? "已盖章" : "未盖章"
+  header.append(heading, badge)
+  drawer.append(header)
+
+  if (!entries.length) {
+    const empty = document.createElement("p")
+    empty.className = "drawer-empty"
+    empty.textContent = stamped ? "当天已打卡盖章，文章已从书架移除。" : "这一天没有收藏文章。"
+    drawer.append(empty)
+  } else {
+    const list = document.createElement("div")
+    list.className = "drawer-articles"
+    for (const article of entries) {
+      const link = document.createElement("a")
+      link.className = "drawer-article-link"
+      link.href = `#read/${article.id}`
+      const title = document.createElement("strong")
+      title.dir = "auto"
+      title.textContent = article.title
+      const meta = document.createElement("span")
+      meta.textContent = [article.source, readTime(article)].filter(Boolean).join(" · ")
+      link.append(title, meta)
+      list.append(link)
+    }
+    drawer.append(list)
+  }
+  drawer.hidden = false
 }
 
 function buildCalendar(container, days, year) {
@@ -329,8 +528,8 @@ function buildCalendar(container, days, year) {
   caption.className = "calendar-caption"
   caption.setAttribute("aria-live", "polite")
   caption.textContent = annual
-    ? `${[...days].filter(day => day.startsWith(String(year)) && day <= today).length} 天已盖章`
-    : "最近 12 周"
+    ? `${[...days].filter(day => day.startsWith(String(year)) && day <= today).length} 天已盖章 · 点击任意日期查看当日收藏`
+    : "最近 12 周 · 点击日期定位文章"
   const legend = document.createElement("span")
   legend.className = "calendar-legend"
   legend.innerHTML = '<i></i>未盖章<i class="checked"></i>已盖章'
@@ -340,7 +539,8 @@ function buildCalendar(container, days, year) {
     const cell = event.target.closest("button[data-day]")
     if (!cell) return
     selectCalendarDay(container, cell)
-    if (!annual) jumpToArchiveDay(container, cell.dataset.day)
+    if (annual) renderCalendarDayDrawer(cell.dataset.day)
+    else jumpToArchiveDay(container, cell.dataset.day)
   })
   container.addEventListener("keydown", event => {
     const cell = event.target.closest("button[data-day]")
@@ -348,7 +548,10 @@ function buildCalendar(container, days, year) {
     if (!cell || !(event.key in offsets)) return
     event.preventDefault()
     const next = container.querySelector(`[data-day="${shiftDay(cell.dataset.day, offsets[event.key])}"]`)
-    if (next) selectCalendarDay(container, next, true)
+    if (next) {
+      selectCalendarDay(container, next, true)
+      if (annual) renderCalendarDayDrawer(next.dataset.day)
+    }
   })
   if (annual && selected === today) {
     const todayCell = grid.querySelector('[aria-current="date"]')
@@ -358,30 +561,119 @@ function buildCalendar(container, days, year) {
 
 function showDesk() {
   main.append(view("desk-view"))
-  showArticles(main.querySelector("[data-recent]"), journal.articles)
   const days = checkedDays()
-  main.querySelector("[data-streak]").textContent = readingStats(days, today).current
-  if (days.has(today)) {
+  const stats = readingStats(days, today)
+  const stamped = days.has(today)
+  const greeting = greetingCopy()
+
+  const eyebrow = main.querySelector("[data-desk-eyebrow]")
+  const heading = main.querySelector("[data-desk-heading]")
+  const subtitle = main.querySelector("[data-desk-subtitle]")
+  eyebrow.textContent = stamped ? `今日已盖章 · 连续第 ${stats.current} 天` : greeting.eyebrow
+  eyebrow.classList.toggle("is-stamped", stamped)
+  heading.textContent = stamped ? "今日外刊已归档" : greeting.heading
+  subtitle.textContent = stamped
+    ? "今日外刊日课已完成，保持这份从容的阅读节奏。"
+    : "收藏一篇英语外刊，在阅读日历上为今天盖一枚章。"
+
+  const monthPrefix = today.slice(0, 7)
+  const monthDays = [...days].filter(day => day.startsWith(monthPrefix) && day <= today).length
+  const totalMinutes = journal.articles.reduce((sum, article) => sum + readMinutes(article), 0)
+  main.querySelector("[data-metric-articles]").textContent = journal.articles.length
+  main.querySelector("[data-metric-month]").textContent = monthDays
+  main.querySelector("[data-metric-minutes]").textContent = totalMinutes
+
+  showArticles(main.querySelector("[data-recent]"), journal.articles)
+  main.querySelector("[data-streak]").textContent = stats.current
+  if (stamped) {
     main.querySelector("[data-today-stamp]").classList.add("is-stamped")
     main.querySelector("[data-today-status]").textContent = "今日已盖章"
   }
+  buildWeekStrip(main.querySelector("[data-week-strip]"), days)
   buildCalendar(main.querySelector("[data-calendar]"), days)
 }
 
 function showLibrary(search = "") {
   main.append(view("library-view"))
-  main.querySelector("[data-library-count]").textContent = `已收藏 ${journal.articles.length} 篇文章`
+  const totalWords = journal.articles.reduce((sum, article) => sum + countWords(article.text, article.source), 0)
+  const wordNote = totalWords ? ` · 累计约 ${totalWords.toLocaleString("zh-CN")} 词` : ""
+  main.querySelector("[data-library-count]").textContent = `已收藏 ${journal.articles.length} 篇文章${wordNote}`
+
   const input = main.querySelector("[data-search]")
+  const clearBtn = main.querySelector("[data-search-clear]")
+  const chipsContainer = main.querySelector("[data-filter-chips]")
   const container = main.querySelector("[data-library]")
   input.value = search
+
+  const sourceCounts = new Map()
+  let quizCount = 0
+  for (const article of journal.articles) {
+    if (article.source) sourceCounts.set(article.source, (sourceCounts.get(article.source) ?? 0) + 1)
+    if (article.quiz?.length) quizCount += 1
+  }
+
+  const filterDefs = [{ id: "all", label: "全部", count: journal.articles.length }]
+  for (const [source, count] of [...sourceCounts.entries()].sort((a, b) => b[1] - a[1])) {
+    filterDefs.push({ id: `source:${source}`, label: source, count })
+  }
+  if (quizCount > 0) filterDefs.push({ id: "has-quiz", label: "含阅读理解", count: quizCount })
+
+  if (!filterDefs.some(item => item.id === activeLibraryFilter)) activeLibraryFilter = "all"
+
+  const renderChips = () => {
+    if (filterDefs.length <= 2) {
+      chipsContainer.hidden = true
+      return
+    }
+    chipsContainer.hidden = false
+    chipsContainer.replaceChildren(...filterDefs.map(def => {
+      const btn = document.createElement("button")
+      btn.type = "button"
+      btn.className = "filter-chip"
+      btn.dataset.filterId = def.id
+      btn.setAttribute("aria-pressed", String(activeLibraryFilter === def.id))
+      const label = document.createElement("span")
+      label.textContent = def.label
+      const count = document.createElement("span")
+      count.className = "chip-count"
+      count.textContent = def.count
+      btn.append(label, count)
+      return btn
+    }))
+  }
+
   const filter = () => {
     const query = input.value.trim().toLocaleLowerCase()
-    const articles = query ? journal.articles.filter(article =>
-      [article.title, article.source, article.text].some(value => value.toLocaleLowerCase().includes(query))
-    ) : journal.articles
-    showArticles(container, articles, query)
+    clearBtn.hidden = !input.value
+    let articles = journal.articles
+    if (activeLibraryFilter === "has-quiz") {
+      articles = articles.filter(article => article.quiz?.length > 0)
+    } else if (activeLibraryFilter.startsWith("source:")) {
+      const targetSource = activeLibraryFilter.slice(7)
+      articles = articles.filter(article => article.source === targetSource)
+    }
+    if (query) {
+      articles = articles.filter(article =>
+        [article.title, article.source, article.text].some(value => value.toLocaleLowerCase().includes(query))
+      )
+    }
+    showArticles(container, articles, query, activeLibraryFilter !== "all")
   }
+
+  chipsContainer.addEventListener("click", event => {
+    const chip = event.target.closest("[data-filter-id]")
+    if (!chip) return
+    activeLibraryFilter = chip.dataset.filterId
+    renderChips()
+    filter()
+  })
+  clearBtn.addEventListener("click", () => {
+    input.value = ""
+    input.focus()
+    filter()
+  })
   input.addEventListener("input", filter)
+  renderChips()
   filter()
 }
 
@@ -393,18 +685,42 @@ function showCalendar() {
   main.querySelector("[data-longest]").textContent = stats.longest
   main.querySelector("[data-total]").textContent = stats.total
   main.querySelector("[data-calendar-year]").textContent = `${calendarYear} 年`
+  const yearStamped = [...days].filter(day => day.startsWith(String(calendarYear)) && day <= today).length
+  const yearArticles = journal.articles.filter(article => article.day.startsWith(String(calendarYear))).length
+  main.querySelector("[data-calendar-year-sub]").textContent = `当年已盖章 ${yearStamped} 天 · 收藏 ${yearArticles} 篇外刊`
   const thisYear = Number(today.slice(0, 4))
   const oldest = Math.min(thisYear - 1, ...[...days].map(day => Number(day.slice(0, 4))))
   main.querySelector('[data-action="prev-year"]').disabled = calendarYear <= oldest
   main.querySelector('[data-action="next-year"]').disabled = calendarYear >= thisYear
   buildCalendar(main.querySelector("[data-calendar]"), days, calendarYear)
+  if (calendarYear === thisYear && (days.has(today) || journal.articles.some(a => a.day === today))) {
+    renderCalendarDayDrawer(today)
+  }
 }
 
 function updateReadingProgress() {
   const progress = main.querySelector(".reading-progress")
   if (!progress) return
   const maxScroll = document.documentElement.scrollHeight - window.innerHeight
-  progress.value = maxScroll > 0 ? Math.min(100, Math.max(0, window.scrollY / maxScroll * 100)) : 100
+  const pct = maxScroll > 0 ? Math.min(100, Math.max(0, window.scrollY / maxScroll * 100)) : 100
+  progress.value = pct
+  topbarProgressPill.textContent = `${Math.round(pct)}%`
+  topbarProgressPill.hidden = false
+
+  const header = main.querySelector(".article-header")
+  if (header) {
+    const pastHeader = header.getBoundingClientRect().bottom < 72
+    topbarArticleTitle.classList.toggle("is-visible", pastHeader)
+  }
+
+  const floatBox = main.querySelector("[data-reader-float]")
+  const topButton = main.querySelector('[data-action="scroll-top"]')
+  const quizButton = main.querySelector('[data-action="jump-quiz"]')
+  if (floatBox && topButton) {
+    const showTop = window.scrollY > 320
+    topButton.hidden = !showTop
+    floatBox.hidden = !showTop && (!quizButton || quizButton.hidden)
+  }
 }
 
 function revealReadingBars() {
@@ -430,14 +746,25 @@ function handleReadingScroll() {
   }
 }
 
+function syncThemeColor(theme) {
+  if (!themeColorMeta) return
+  themeColorMeta.content = themeColors[theme] ?? themeColors.default
+}
+
 function applyReadingPreferences(reader) {
   reader.dataset.fontSize = preferences["font-size"]
   reader.dataset.theme = preferences["paper-theme"]
+  reader.dataset.fontFamily = preferences["font-family"] || "serif"
+  reader.dataset.lineHeight = preferences["line-height"] || "normal"
+  document.body.dataset.readerTheme = preferences["paper-theme"]
+  syncThemeColor(preferences["paper-theme"])
   updateReadingProgress()
 }
 
 function showReader(article) {
   if (!article) {
+    delete document.body.dataset.readerTheme
+    syncThemeColor("default")
     message(main, "这篇文章还没收藏", "可以从文章收藏打开此浏览器里的文章。", "file")
     return
   }
@@ -446,9 +773,30 @@ function showReader(article) {
   const reader = main.querySelector(".reader")
   const title = reader.querySelector("[data-article-title]")
   title.textContent = article.title
+  topbarArticleTitle.textContent = article.title
+
   const date = article.day ? dateText(article.day, archiveDateFormat) : ""
   const run = readingStreaks(checkedDays()).get(article.day)
-  const metadata = [article.source, date, run ? `第 ${run} 天` : "", readTime(article)].filter(Boolean)
+  const words = countWords(article.text, article.source)
+
+  const kicker = reader.querySelector("[data-article-kicker]")
+  const pubEl = reader.querySelector("[data-article-publisher]")
+  const streakEl = reader.querySelector("[data-article-streak]")
+  if (article.source || run) {
+    kicker.hidden = false
+    if (article.source) {
+      pubEl.textContent = article.source
+      pubEl.dataset.pub = publisherBadgeInfo(article).key
+    } else {
+      pubEl.hidden = true
+    }
+    if (run) {
+      streakEl.textContent = `连续第 ${run} 天`
+      streakEl.hidden = false
+    }
+  }
+
+  const metadata = [date, words ? `${words} 词` : "", readTime(article)].filter(Boolean)
   reader.querySelector("[data-article-meta]").textContent = metadata.join("  ·  ")
   const url = safeSourceUrl(article.url)
   const source = reader.querySelector("[data-article-source]")
@@ -480,6 +828,11 @@ function showReader(article) {
     const quiz = reader.querySelector(".article-quiz")
     showQuiz(quiz, article.quiz)
     quiz.addEventListener("toggle", updateReadingProgress)
+    if (article.quiz?.length) {
+      const jumpQuiz = reader.querySelector('[data-action="jump-quiz"]')
+      jumpQuiz.hidden = false
+      reader.querySelector("[data-reader-float]").hidden = false
+    }
   }
   for (const input of reader.querySelectorAll(".reading-preferences input")) {
     input.checked = input.value === preferences[input.name]
@@ -493,6 +846,7 @@ function showReader(article) {
       applyReadingPreferences(reader)
     })
   }
+  setFocusMode(document.body.classList.contains("focus-mode"))
   applyReadingPreferences(reader)
 }
 
@@ -556,11 +910,21 @@ function render() {
   if (!ready) return
   const { page, id, code } = route()
   const article = page === "reader" ? findArticle(id) : undefined
-  document.body.classList.toggle("reading-mode", Boolean(article))
-  if (!article) revealReadingBars()
+  const isReading = Boolean(article)
+  document.body.classList.toggle("reading-mode", isReading)
+  if (!isReading) {
+    revealReadingBars()
+    document.body.classList.remove("focus-mode")
+    delete document.body.dataset.readerTheme
+    syncThemeColor("default")
+    topbarArticleTitle.textContent = ""
+    topbarArticleTitle.classList.remove("is-visible")
+    topbarProgressPill.hidden = true
+  }
   document.title = `${article?.title ?? pages[page]} · 外刊日课`
   document.querySelector("#page-label").textContent = pages[page]
   renderDate()
+  updateSidebarPulse()
   for (const link of document.querySelectorAll("[data-nav]")) {
     if (link.dataset.nav === (page === "reader" ? "library" : page)) link.setAttribute("aria-current", "page")
     else link.removeAttribute("aria-current")
@@ -598,6 +962,13 @@ function fitEditorToViewport() {
   dialog.style.setProperty("--editor-viewport-height", `${viewport.height}px`)
 }
 
+function updateEditorWordCount() {
+  const words = countWords(editorForm.elements.text.value)
+  editorWordCount.textContent = words ? `${words} 词 · 约 ${Math.max(1, Math.ceil(words / 220))} 分钟` : ""
+}
+
+editorForm.elements.text.addEventListener("input", updateEditorWordCount)
+
 function openEditor(article, focusQuiz = false) {
   editingId = article?.id ?? null
   editorForm.reset()
@@ -605,6 +976,7 @@ function openEditor(article, focusQuiz = false) {
   for (const field of ["title", "text", "source", "url"]) {
     editorForm.elements[field].value = article?.[field] ?? ""
   }
+  updateEditorWordCount()
   document.querySelector("#source-fields").open = Boolean(article?.source || article?.url)
   const quizControl = setQuizEditor(article?.quiz, focusQuiz)
   document.querySelector("#editor-title").textContent = editingId ? "编辑文章" : "粘贴文章"
@@ -662,7 +1034,7 @@ function showToast(message, article) {
   link.hidden = !article
   if (article) {
     link.href = `#read/${article.id}`
-    link.textContent = "阅读"
+    link.textContent = "立即阅读"
   }
   toast.hidden = false
   clearTimeout(toastTimeout)
@@ -928,7 +1300,7 @@ backupFile.addEventListener("change", async () => {
 document.addEventListener("click", event => {
   const settings = main.querySelector(".reading-preferences[open]")
   if (mobileReader.matches && document.body.classList.contains("reading-mode") && !settings
-    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, .article-quiz, a, button, input, summary")
+    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, .article-quiz, .reader-float, a, button, input, summary")
     && window.getSelection()?.type !== "Range") {
     if (document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
     else document.body.classList.add("reading-bars-hidden")
@@ -947,6 +1319,19 @@ document.addEventListener("click", event => {
   if (action === "edit-quiz") openEditor(findArticle(route().id), true)
   if (action === "transfer") openTransferDialog()
   if (action === "copy-transfer") copyArticleLink()
+  if (action === "toggle-focus") setFocusMode(!document.body.classList.contains("focus-mode"))
+  if (action === "scroll-top") {
+    const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+    window.scrollTo({ top: 0, behavior })
+  }
+  if (action === "jump-quiz") {
+    const quiz = main.querySelector(".article-quiz")
+    if (quiz) {
+      quiz.open = true
+      const behavior = matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+      quiz.scrollIntoView({ behavior, block: "start" })
+    }
+  }
   if (action === "export-article" && pendingTransfer) {
     downloadJson(pendingTransfer, `外刊日课-单篇-${pendingTransfer.articles[0].day}.json`)
     transferStatus.textContent = "在手机打开「备份与恢复」，选择这份单篇文件导入。"
@@ -970,11 +1355,17 @@ document.addEventListener("click", event => {
 
 document.addEventListener("keydown", event => {
   if (event.key === "Tab" && document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
-  if (event.key !== "Escape") return
-  const settings = main.querySelector(".reading-preferences[open]")
-  if (!settings || !settings.contains(document.activeElement)) return
-  settings.open = false
-  settings.querySelector("summary").focus()
+  if (event.key === "Escape") {
+    const settings = main.querySelector(".reading-preferences[open]")
+    if (settings && settings.contains(document.activeElement)) {
+      settings.open = false
+      settings.querySelector("summary").focus()
+      return
+    }
+    if (document.body.classList.contains("focus-mode") && !document.querySelector("dialog[open]")) {
+      setFocusMode(false)
+    }
+  }
 })
 
 async function loadAndRender() {
