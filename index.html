@@ -7,8 +7,8 @@
     <meta name="theme-color" content="#f6f2ea">
     <title>外刊日课</title>
     <link rel="icon" href="./assets/mark.svg?v=2" type="image/svg+xml">
-    <link rel="stylesheet" href="./styles.css?v=9">
-    <script type="module" src="./app.js?v=16"></script>
+    <link rel="stylesheet" href="./styles.css?v=10">
+    <script type="module" src="./app.js?v=17"></script>
   </head>
   <body>
     <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -275,6 +275,30 @@
           </header>
           <div class="article-text" data-article-text></div>
           <div class="article-colophon" aria-hidden="true"><span>✦</span></div>
+          <details class="article-vocabulary" hidden>
+            <summary>本篇生词<span data-vocabulary-count></span></summary>
+            <p class="vocabulary-empty" data-vocabulary-empty>在正文选中单词或短语，再点「标记生词」。</p>
+            <ul class="vocabulary-list" data-vocabulary-list></ul>
+          </details>
+          <button type="button" class="float-pill vocabulary-select" data-vocabulary-select hidden>标记生词</button>
+          <dialog class="dialog vocabulary-dialog" aria-labelledby="vocabulary-title">
+            <form>
+              <div class="dialog-header">
+                <div><h2 id="vocabulary-title">生词释义</h2><p data-vocabulary-word dir="auto"></p></div>
+              </div>
+              <div class="editor-fields">
+                <label class="field">在原句中的意思<span class="optional">选填</span>
+                  <input name="meaning" type="text" dir="auto" maxlength="240" autofocus>
+                </label>
+                <p class="form-error" role="alert" hidden></p>
+              </div>
+              <div class="dialog-footer">
+                <button type="button" class="button secondary vocabulary-remove" data-vocabulary-remove>取消标记</button>
+                <button type="button" class="button secondary" data-action="close">关闭</button>
+                <button type="submit" class="button primary">保存</button>
+              </div>
+            </form>
+          </dialog>
           <details class="article-quiz" hidden>
             <summary>
               <span class="quiz-summary-icon" aria-hidden="true"><svg class="icon"><use href="#i-quiz"/></svg></span>

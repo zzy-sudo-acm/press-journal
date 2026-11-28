@@ -114,11 +114,18 @@ export async function updateArticle(id, draft) {
   const transaction = db.transaction("articles", "readwrite")
   const articles = transaction.objectStore("articles")
   const existing = articles.get(id)
+  let updated
   existing.onsuccess = () => {
-    if (existing.result) articles.put({ ...existing.result, ...draft })
-    else transaction.abort()
+    const changes = existing.result && (typeof draft === "function" ? draft(existing.result) : draft)
+    if (!changes) {
+      transaction.abort()
+      return
+    }
+    updated = { ...existing.result, ...changes }
+    articles.put(updated)
   }
   await transactionFinished(transaction)
+  return updated
 }
 
 export async function deleteArticle(id) {
@@ -151,6 +158,22 @@ function validQuiz(quiz) {
     && Number.isInteger(question.answer) && question.answer >= 0 && question.answer < question.options.length)
 }
 
+function validVocabulary(vocabulary) {
+  if (!Array.isArray(vocabulary)) return false
+  const ids = new Set()
+  for (const mark of vocabulary) {
+    if (!mark || typeof mark.id !== "string" || !/^[\w-]{1,80}$/.test(mark.id) || ids.has(mark.id)
+      || typeof mark.word !== "string" || !mark.word.trim() || mark.word.length > 120
+      || typeof mark.meaning !== "string" || mark.meaning.length > 240
+      || typeof mark.sentence !== "string" || !Number.isSafeInteger(mark.offset) || mark.offset < 0
+      || !mark.sentence.startsWith(mark.word, mark.offset)
+      || !Number.isSafeInteger(mark.paragraph) || mark.paragraph < 0
+      || !Number.isSafeInteger(mark.start) || mark.start < mark.offset) return false
+    ids.add(mark.id)
+  }
+  return true
+}
+
 function validArticle(article) {
   return article && typeof article.id === "string" && /^[\w-]{1,80}$/.test(article.id)
     && article.id !== "sample"
@@ -159,6 +182,7 @@ function validArticle(article) {
     && typeof article.source === "string" && article.source.length <= 120
     && typeof article.url === "string" && (!article.url || !!safeSourceUrl(article.url))
     && (article.quiz === undefined || validQuiz(article.quiz))
+    && (article.vocabulary === undefined || validVocabulary(article.vocabulary))
     && validDay(article.day) && validTimestamp(article.savedAt)
 }
 

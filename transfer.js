@@ -1,16 +1,16 @@
-import { isJournalBackup } from "./journal.js?v=6"
+import { isJournalBackup } from "./journal.js?v=7"
 
 const maxLinkLength = 6000
 const maxArticleBytes = 256 * 1024
 
 export function articleBackup(article, checkins) {
-  const { id, title, text, source, url, day, savedAt, quiz } = article
+  const { id, title, text, source, url, day, savedAt, quiz, vocabulary } = article
   const stamp = checkins.find(record => record.day === day)
   return {
     format: "press-journal",
     version: 1,
     articleTransfer: true,
-    articles: [{ id, title, text, source, url, day, savedAt, quiz }],
+    articles: [{ id, title, text, source, url, day, savedAt, quiz, vocabulary }],
     checkins: stamp ? [{ day, createdAt: stamp.createdAt }] : []
   }
 }

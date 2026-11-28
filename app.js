@@ -1,11 +1,12 @@
 import {
   deleteArticle, exportJournal, importJournal, isJournalBackup, loadJournal, localDay, mondayOf,
   readingStats, readingStreaks, safeSourceUrl, saveArticle, shiftDay, updateArticle
-} from "./journal.js?v=6"
-import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=6"
+} from "./journal.js?v=7"
+import { articleBackup, createTransferLink, readTransferLink } from "./transfer.js?v=7"
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=12"
 import { readQuizEditor, setQuizEditor, showQuiz } from "./quiz.js?v=2"
+import { showVocabulary } from "./vocabulary.js?v=1"
 
 const sample = {
   id: "sample",
@@ -89,6 +90,7 @@ const settingsKey = `${keyPrefix}:reader-settings`
 const sidebarKey = `${keyPrefix}:sidebar-collapsed`
 
 let journal = { articles: [], checkins: [] }
+let disposeVocabulary
 let today = localDay()
 let calendarYear = Number(today.slice(0, 4))
 let editingId = null
@@ -828,6 +830,16 @@ function showReader(article) {
     content.append(node)
   }
   if (article.id !== sample.id) {
+    disposeVocabulary = showVocabulary(reader, paragraphs, article.vocabulary ?? [], async change => {
+      const updated = await updateArticle(article.id, current => {
+        if (current.text !== article.text || current.title !== article.title || current.source !== article.source) return
+        return { vocabulary: change(current.vocabulary ?? []) }
+      })
+      const cached = findArticle(article.id)
+      if (cached) cached.vocabulary = updated.vocabulary
+      updates.postMessage("journal-changed")
+      return updated.vocabulary
+    }, showToast, updateReadingProgress)
     const quiz = reader.querySelector(".article-quiz")
     showQuiz(quiz, article.quiz)
     quiz.addEventListener("toggle", updateReadingProgress)
@@ -933,6 +945,8 @@ function render() {
     else link.removeAttribute("aria-current")
   }
   const search = main.querySelector("[data-search]")?.value
+  disposeVocabulary?.()
+  disposeVocabulary = undefined
   main.replaceChildren()
   if (page === "desk") showDesk()
   if (page === "library") showLibrary(search)
@@ -1303,7 +1317,7 @@ backupFile.addEventListener("change", async () => {
 document.addEventListener("click", event => {
   const settings = main.querySelector(".reading-preferences[open]")
   if (mobileReader.matches && document.body.classList.contains("reading-mode") && !settings
-    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, .article-quiz, .reader-float, a, button, input, summary")
+    && event.target.closest(".app-body") && !event.target.closest(".topbar, .reader-tools, .article-quiz, .reader-float, .article-vocabulary, .vocabulary-mark, dialog, a, button, input, summary")
     && window.getSelection()?.type !== "Range") {
     if (document.body.classList.contains("reading-bars-hidden")) revealReadingBars()
     else document.body.classList.add("reading-bars-hidden")
