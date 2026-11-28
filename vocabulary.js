@@ -134,6 +134,7 @@ export function showVocabulary(reader, paragraphs, initialMarks, persist, notify
       row.append(header)
       if (mark.meaning) {
         const note = document.createElement("p")
+        note.className = "vocabulary-meaning"
         note.dir = "auto"
         note.textContent = mark.meaning
         row.append(note)

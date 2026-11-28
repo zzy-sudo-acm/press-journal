@@ -1385,6 +1385,7 @@ body[data-reader-theme="night"] .button.secondary:hover:not(:disabled) {
   background: var(--article-accent);
   color: var(--article-bg);
 }
+.float-pill.vocabulary-select:hover { background: var(--article-ink); transform: translateX(-50%); }
 .float-pill.vocabulary-select:focus-visible { outline-color: var(--article-accent); }
 
 .article-vocabulary {
@@ -1413,11 +1414,13 @@ button.vocabulary-term:hover, .vocabulary-edit:hover { text-decoration: underlin
 .vocabulary-edit { min-width: 42px; text-align: end; flex: none; }
 .vocabulary-empty, .vocabulary-sentence, .vocabulary-list small { color: var(--article-muted); line-height: 1.55; }
 .vocabulary-empty { margin: 0 4px 14px; }
+.vocabulary-meaning { white-space: pre-wrap; line-height: 1.55; }
 .vocabulary-sentence { font-family: var(--serif); font-size: 16px; }
 .vocabulary-sentence strong { color: var(--article-ink); }
 .vocabulary-list small { display: block; margin-top: 6px; }
 .vocabulary-dialog { width: min(100% - 28px, 450px); }
 .vocabulary-dialog [data-vocabulary-word] { font: 600 18px/1.5 var(--serif); overflow-wrap: anywhere; }
+.vocabulary-dialog textarea[name="meaning"] { display: block; height: auto; min-height: 0; margin-top: 6px; }
 .vocabulary-remove { margin-inline-end: auto; color: var(--seal-dark); }
 
 /* Desktop Focus Reading Mode */
@@ -1433,6 +1436,9 @@ button.vocabulary-term:hover, .vocabulary-edit:hover { text-decoration: underlin
   }
   body.focus-mode.reading-mode .topbar:hover,
   body.focus-mode.reading-mode .topbar:focus-within { opacity: 1; }
+  body.focus-mode.reading-mode .topbar .sidebar-toggle,
+  body.focus-mode.reading-mode .topbar .page-label { display: none; }
+  body.focus-mode.reading-mode .topbar-article-title { border-left: 0; padding-inline-start: 0; }
   body.focus-mode.reading-mode .reader { max-width: 940px; }
 }
 

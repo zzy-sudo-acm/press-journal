@@ -6,7 +6,7 @@ import { articleBackup, createTransferLink, readTransferLink } from "./transfer.
 import { restoreReadingAfterUpdate, watchForSiteUpdates } from "./release.js?v=4"
 import { cleanPublisherText, fetchPublicArticle, identifyArticleLink, publishers } from "./link-import.js?v=12"
 import { readQuizEditor, setQuizEditor, showQuiz } from "./quiz.js?v=2"
-import { showVocabulary } from "./vocabulary.js?v=1"
+import { showVocabulary } from "./vocabulary.js?v=2"
 
 const sample = {
   id: "sample",
